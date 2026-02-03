@@ -1,0 +1,27 @@
+# Build artifacts (global)
+**/target/
+**/*.o
+**/*.a
+**/*.elf
+**/*.ll
+**/*.s
+**/*.d
+**/*.map
+
+# OS images / binaries
+**/*.bin
+**/*.img
+**/*.iso
+
+# Archives
+**/*.zip
+**/*.tar.gz
+
+# Common build dirs
+**/build/
+**/dist/
+**/out/
+
+# Editor/OS cruft
+.DS_Store
+Thumbs.db
