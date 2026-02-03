@@ -1,0 +1,41 @@
+# Object files
+*.o
+
+# Libraries
+*.lib
+*.a
+
+# Executables
+*.exe
+*.out
+*.app
+
+# Debug files
+*.dSYM/
+
+# Cross compiler
+cross-compiler/
+
+# IDE specific files
+.vscode/
+.idea/
+*.swp
+*~
+
+# Temporary files
+*.tmp
+*.bak
+
+# Downloaded installers
+mingw-get-setup.exe
+msys2-installer.exe
+i686-elf-tools.zip
+
+# OS specific files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
