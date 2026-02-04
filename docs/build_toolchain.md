@@ -12,8 +12,14 @@ This repo aims to be **source-only**. Large binary artifacts (e.g. `myos.bin`, `
 
 ## Notes
 - If you need prebuilt artifacts for convenience, they should live in **GitHub Releases**.
-- For now, build via:
-  - `./tools/run_qemu.sh`
+
+### Run (current harness)
+From the repo root:
+```bash
+./tools/run_qemu.sh
+```
+
+This currently builds/runs **legacy/MyOS** while we migrate modules into canonical paths.
 
 ## TODO
 - Add a reproducible toolchain installer script (Linux) and a pinned version list.
