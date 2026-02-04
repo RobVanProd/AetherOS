@@ -1,14 +1,43 @@
 # AetherOS
 
-Canonical OS repo consolidating:
-- `MyOS` (legacy kernel + subsystems)
-- `Aether_OS` (local project docs/tooling)
+**Canonical repo** for Aeternums’ GenAI‑native operating system.
 
-Status: bootstrap + migration in progress.
+This repo consolidates:
+- **MyOS** (legacy kernel + subsystems) → `legacy/MyOS/`
+- **Aether_OS** (design docs + tooling) → `docs/aether_os/`
 
-## Layout (initial)
-- `legacy/` — imported projects with preserved history (first: `legacy/MyOS/`)
-- `docs/aether_os/` — imported design docs from the local Aether_OS project
+## What we’re building
+AetherOS is an OS where **intent is a first‑class interface** (Nebula): you express what you want done, and the OS composes capabilities (“facets”) to do it — with memory, provenance, and safety.
+
+Read the practical definition here:
+- `docs/V0_DEFINITION.md`
+
+## Current status
+- Canonical repo is live; migration is in progress.
+- See:
+  - `MIGRATION.md` (module-by-module plan)
+  - `docs/aether_os/STATUS.md` (latest development status)
+  - `docs/aether_os/aether_roadmap.md` (phased roadmap)
+
+## Quickstart (today)
+Right now the build harness targets legacy/MyOS while we migrate modules.
+
+```bash
+# from repo root
+./tools/run_qemu.sh
+```
+
+Toolchain notes:
+- `docs/build_toolchain.md`
+
+## Repo layout
+- `legacy/` — imported projects with preserved history
+- `docs/` — canonical docs (including Aether_OS imports)
 - `tools/` — build/migration scripts
 
-See `MIGRATION.md` for the plan.
+## Contributing
+- `CONTRIBUTING.md`
+
+---
+
+**Principle:** ship small, demoable slices; keep the repo source-only; make the build/test harness boring and reproducible.
