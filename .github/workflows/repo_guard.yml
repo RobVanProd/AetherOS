@@ -1,0 +1,70 @@
+name: Repo Guard (no big files / no binary artifacts)
+
+on:
+  pull_request:
+  push:
+    branches: ["main"]
+
+jobs:
+  guard:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Guard: file size + forbidden extensions
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          MAX_BYTES=$((10*1024*1024))
+          # Keep this conservative; we can loosen per-repo later.
+          FORBIDDEN_EXT_REGEX='\.(bin|img|iso|zip|7z|rar|tar|gz|xz|bz2|exe|dll|so|dylib|o|a|rlib|pdb|dmp|pdf)$'
+
+          if [[ "${GITHUB_EVENT_NAME}" == "pull_request" ]]; then
+            BASE_SHA="${{ github.event.pull_request.base.sha }}"
+            HEAD_SHA="${{ github.event.pull_request.head.sha }}"
+          else
+            BASE_SHA="${{ github.event.before }}"
+            HEAD_SHA="${{ github.sha }}"
+          fi
+
+          echo "Diff range: $BASE_SHA..$HEAD_SHA"
+
+          # If this is the first push, before can be 0000..; handle gracefully.
+          if [[ "$BASE_SHA" =~ ^0+$ ]]; then
+            echo "No base SHA (first push). Scanning full repo."
+            mapfile -t files < <(git ls-files)
+          else
+            mapfile -t files < <(git diff --name-only --diff-filter=AM "$BASE_SHA" "$HEAD_SHA")
+          fi
+
+          if [[ ${#files[@]} -eq 0 ]]; then
+            echo "No added/modified files to check."
+            exit 0
+          fi
+
+          bad=0
+          for f in "${files[@]}"; do
+            [[ -f "$f" ]] || continue
+            sz=$(stat -c%s "$f" 2>/dev/null || echo 0)
+
+            if [[ "$f" =~ $FORBIDDEN_EXT_REGEX ]]; then
+              echo "::error file=$f::Forbidden file extension detected: $f"
+              bad=1
+            fi
+
+            if (( sz > MAX_BYTES )); then
+              echo "::error file=$f::File too large ($sz bytes > $MAX_BYTES): $f"
+              bad=1
+            fi
+          done
+
+          if (( bad == 1 )); then
+            echo "Repo Guard failed. Please move large/binary artifacts to Releases or external storage, and keep repo source-only."
+            exit 1
+          fi
+
+          echo "Repo Guard OK."
