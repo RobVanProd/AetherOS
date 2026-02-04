@@ -1,0 +1,6 @@
+[workspace]
+members = [
+  "aetherd",
+  "aurorad",
+]
+resolver = "2"
