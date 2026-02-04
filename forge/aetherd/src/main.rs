@@ -48,7 +48,8 @@ fn handle_conn(mut stream: UnixStream) -> anyhow::Result<()> {
 }
 
 fn main() -> anyhow::Result<()> {
-    let socket_path = std::env::var("AETHERD_SOCKET").unwrap_or_else(|_| "/tmp/aetherd.sock".to_string());
+    let socket_path =
+        std::env::var("AETHERD_SOCKET").unwrap_or_else(|_| "/tmp/aetherd.sock".to_string());
     if Path::new(&socket_path).exists() {
         std::fs::remove_file(&socket_path)?;
     }

@@ -62,12 +62,21 @@ fn handle_conn(mut stream: UnixStream) -> anyhow::Result<()> {
 
     if method == "POST" && path == "/v0/jobs" {
         let body_str = parse_body(&req);
-        let jr: JobRequest = serde_json::from_str(body_str).unwrap_or(JobRequest { job_type: None });
-        let jt = jr.job_type.unwrap_or_else(|| "predict_next_state".to_string());
+        let jr: JobRequest =
+            serde_json::from_str(body_str).unwrap_or(JobRequest { job_type: None });
+        let jt = jr
+            .job_type
+            .unwrap_or_else(|| "predict_next_state".to_string());
 
         let resp = JobResponse {
             ok: true,
-            job_id: format!("job_{}", std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap().as_secs()),
+            job_id: format!(
+                "job_{}",
+                std::time::SystemTime::now()
+                    .duration_since(std::time::UNIX_EPOCH)
+                    .unwrap()
+                    .as_secs()
+            ),
             mocked: true,
             job_type: jt.clone(),
             result: serde_json::json!({"note": "mocked_result", "job_type": jt}),
@@ -82,7 +91,8 @@ fn handle_conn(mut stream: UnixStream) -> anyhow::Result<()> {
 }
 
 fn main() -> anyhow::Result<()> {
-    let socket_path = std::env::var("AURORAD_SOCKET").unwrap_or_else(|_| "/tmp/aurorad.sock".to_string());
+    let socket_path =
+        std::env::var("AURORAD_SOCKET").unwrap_or_else(|_| "/tmp/aurorad.sock".to_string());
     if Path::new(&socket_path).exists() {
         std::fs::remove_file(&socket_path)?;
     }
