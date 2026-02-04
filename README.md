@@ -12,6 +12,10 @@ AetherOS is an OS where **intent is a first‑class interface** (Nebula): you ex
 Read the practical definition here:
 - `docs/V0_DEFINITION.md`
 
+v0 planning + Aurora boundary docs:
+- `docs/V0_MILESTONE_CHECKLIST.md`
+- `docs/AURORA_CFC_INTEGRATION_BOUNDARY.md`
+
 ## Current status
 - Canonical repo is live; migration is in progress.
 - See:
