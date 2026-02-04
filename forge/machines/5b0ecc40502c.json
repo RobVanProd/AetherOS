@@ -1,0 +1,64 @@
+{
+  "machine_id": "5b0ecc40502c",
+  "profile": "workstation",
+  "cpu": {
+    "model": "qemu64",
+    "cores": 16
+  },
+  "memory_mb": 16384,
+  "storage": {
+    "type": "nvme",
+    "size_gb": 1,
+    "bus": "pcie",
+    "model": "QEMU NVMe"
+  },
+  "network": {
+    "type": "virtio-net-pci",
+    "model": "virtio",
+    "speed": "10000"
+  },
+  "usb_controller": "qemu-xhci",
+  "usb_devices": [
+    {
+      "type": "usb-tablet",
+      "name": "QEMU USB Tablet"
+    },
+    {
+      "type": "usb-mouse",
+      "name": "QEMU USB Mouse"
+    }
+  ],
+  "gpu": {
+    "type": "VGA",
+    "model": "cirrus",
+    "vram_mb": 4
+  },
+  "sound": null,
+  "qemu_args": [
+    "-cpu",
+    "qemu64",
+    "-smp",
+    "16",
+    "-m",
+    "16384",
+    "-nographic",
+    "-serial",
+    "stdio",
+    "-drive",
+    "file=DISK_IMAGE,format=raw,if=none,id=nvme0",
+    "-device",
+    "nvme,serial=deadbeef,drive=nvme0",
+    "-netdev",
+    "user,id=net0",
+    "-device",
+    "virtio-net-pci,netdev=net0",
+    "-device",
+    "qemu-xhci",
+    "-device",
+    "usb-tablet",
+    "-device",
+    "usb-mouse",
+    "-vga",
+    "cirrus"
+  ]
+}

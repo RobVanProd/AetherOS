@@ -1,0 +1,17 @@
+{
+  "count": 5,
+  "machines": [
+    "66d5ac0cf9a8",
+    "de6fc2bf2580",
+    "b28952892fc7",
+    "96d9b2529590",
+    "c5116b5a655f"
+  ],
+  "profiles": {
+    "minimal": 1,
+    "embedded": 1,
+    "desktop": 1,
+    "workstation": 1,
+    "server": 1
+  }
+}

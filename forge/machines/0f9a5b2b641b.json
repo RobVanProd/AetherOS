@@ -1,0 +1,62 @@
+{
+  "machine_id": "0f9a5b2b641b",
+  "profile": "workstation",
+  "cpu": {
+    "model": "qemu64",
+    "cores": 16
+  },
+  "memory_mb": 32768,
+  "storage": {
+    "type": "ide-cd",
+    "size_gb": 0,
+    "bus": "ide",
+    "model": "QEMU DVD-ROM"
+  },
+  "network": {
+    "type": "virtio-net-pci",
+    "model": "virtio",
+    "speed": "10000"
+  },
+  "usb_controller": "qemu-xhci",
+  "usb_devices": [
+    {
+      "type": "usb-kbd",
+      "name": "QEMU USB Keyboard"
+    },
+    {
+      "type": "usb-mouse",
+      "name": "QEMU USB Mouse"
+    }
+  ],
+  "gpu": {
+    "type": "VGA",
+    "model": "qxl",
+    "vram_mb": 16
+  },
+  "sound": null,
+  "qemu_args": [
+    "-cpu",
+    "qemu64",
+    "-smp",
+    "16",
+    "-m",
+    "32768",
+    "-nographic",
+    "-serial",
+    "stdio",
+    "-drive",
+    "file=DISK_IMAGE,format=raw,if=ide,media=cdrom",
+    "-netdev",
+    "user,id=net0",
+    "-device",
+    "virtio-net-pci,netdev=net0",
+    "-device",
+    "qemu-xhci",
+    "-device",
+    "usb-kbd",
+    "-device",
+    "usb-mouse",
+    "-vga",
+    "qxl"
+  ]
+}

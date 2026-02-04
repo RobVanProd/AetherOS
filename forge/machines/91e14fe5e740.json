@@ -1,0 +1,64 @@
+{
+  "machine_id": "91e14fe5e740",
+  "profile": "desktop",
+  "cpu": {
+    "model": "Haswell",
+    "cores": 4
+  },
+  "memory_mb": 3072,
+  "storage": {
+    "type": "ide-cd",
+    "size_gb": 0,
+    "bus": "ide",
+    "model": "QEMU DVD-ROM"
+  },
+  "network": {
+    "type": "virtio-net-pci",
+    "model": "virtio",
+    "speed": "10000"
+  },
+  "usb_controller": "qemu-xhci",
+  "usb_devices": [
+    {
+      "type": "usb-tablet",
+      "name": "QEMU USB Tablet"
+    },
+    {
+      "type": "usb-kbd",
+      "name": "QEMU USB Keyboard"
+    },
+    {
+      "type": "usb-mouse",
+      "name": "QEMU USB Mouse"
+    }
+  ],
+  "gpu": null,
+  "sound": null,
+  "qemu_args": [
+    "-cpu",
+    "Haswell",
+    "-smp",
+    "4",
+    "-m",
+    "3072",
+    "-nographic",
+    "-serial",
+    "stdio",
+    "-drive",
+    "file=DISK_IMAGE,format=raw,if=ide,media=cdrom",
+    "-netdev",
+    "user,id=net0",
+    "-device",
+    "virtio-net-pci,netdev=net0",
+    "-device",
+    "qemu-xhci",
+    "-device",
+    "usb-tablet",
+    "-device",
+    "usb-kbd",
+    "-device",
+    "usb-mouse",
+    "-vga",
+    "none"
+  ]
+}

@@ -1,0 +1,49 @@
+{
+  "machine_id": "16cc8fdfb148",
+  "profile": "embedded",
+  "cpu": {
+    "model": "SandyBridge",
+    "cores": 2
+  },
+  "memory_mb": 768,
+  "storage": {
+    "type": "scsi-hd",
+    "size_gb": 1,
+    "bus": "scsi",
+    "model": "QEMU SCSI"
+  },
+  "network": {
+    "type": "virtio-net-pci",
+    "model": "virtio",
+    "speed": "10000"
+  },
+  "usb_controller": "piix3-usb-uhci",
+  "usb_devices": [],
+  "gpu": null,
+  "sound": null,
+  "qemu_args": [
+    "-cpu",
+    "SandyBridge",
+    "-smp",
+    "2",
+    "-m",
+    "768",
+    "-nographic",
+    "-serial",
+    "stdio",
+    "-device",
+    "virtio-scsi-pci,id=scsi0",
+    "-drive",
+    "file=DISK_IMAGE,format=raw,if=none,id=hd0",
+    "-device",
+    "scsi-hd,drive=hd0,bus=scsi0.0",
+    "-netdev",
+    "user,id=net0",
+    "-device",
+    "virtio-net-pci,netdev=net0",
+    "-device",
+    "piix3-usb-uhci",
+    "-vga",
+    "none"
+  ]
+}

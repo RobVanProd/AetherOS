@@ -1,0 +1,60 @@
+{
+  "machine_id": "bc8fc25e037b",
+  "profile": "desktop",
+  "cpu": {
+    "model": "qemu64",
+    "cores": 8
+  },
+  "memory_mb": 2048,
+  "storage": {
+    "type": "usb-storage",
+    "size_gb": 1,
+    "bus": "usb",
+    "model": "QEMU USB HARDDRIVE"
+  },
+  "network": {
+    "type": "pcnet",
+    "model": "pcnet",
+    "speed": "10"
+  },
+  "usb_controller": "piix3-usb-uhci",
+  "usb_devices": [
+    {
+      "type": "usb-tablet",
+      "name": "QEMU USB Tablet"
+    },
+    {
+      "type": "usb-mouse",
+      "name": "QEMU USB Mouse"
+    }
+  ],
+  "gpu": null,
+  "sound": null,
+  "qemu_args": [
+    "-cpu",
+    "qemu64",
+    "-smp",
+    "8",
+    "-m",
+    "2048",
+    "-nographic",
+    "-serial",
+    "stdio",
+    "-drive",
+    "file=DISK_IMAGE,format=raw,if=none,id=usbdisk",
+    "-device",
+    "usb-storage,drive=usbdisk",
+    "-netdev",
+    "user,id=net0",
+    "-device",
+    "pcnet,netdev=net0",
+    "-device",
+    "piix3-usb-uhci",
+    "-device",
+    "usb-tablet",
+    "-device",
+    "usb-mouse",
+    "-vga",
+    "none"
+  ]
+}

@@ -1,0 +1,56 @@
+{
+  "machine_id": "85a11fa3d882",
+  "profile": "desktop",
+  "cpu": {
+    "model": "qemu64",
+    "cores": 4
+  },
+  "memory_mb": 2048,
+  "storage": {
+    "type": "ide-hd",
+    "size_gb": 1
+  },
+  "network": {
+    "type": "rtl8139",
+    "model": "rtl8139"
+  },
+  "usb_devices": [
+    {
+      "type": "usb-kbd",
+      "name": "USB Keyboard"
+    },
+    {
+      "type": "usb-mouse",
+      "name": "USB Mouse"
+    },
+    {
+      "type": "usb-tablet",
+      "name": "USB Tablet"
+    }
+  ],
+  "qemu_args": [
+    "-enable-kvm",
+    "-cpu",
+    "qemu64",
+    "-smp",
+    "4",
+    "-m",
+    "2048",
+    "-nographic",
+    "-serial",
+    "stdio",
+    "-drive",
+    "file=DISK_IMAGE,format=raw,if=ide",
+    "-netdev",
+    "user,id=net0",
+    "-device",
+    "rtl8139,netdev=net0",
+    "-usb",
+    "-device",
+    "usb-kbd",
+    "-device",
+    "usb-mouse",
+    "-device",
+    "usb-tablet"
+  ]
+}

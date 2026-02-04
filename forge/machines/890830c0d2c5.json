@@ -1,0 +1,64 @@
+{
+  "machine_id": "890830c0d2c5",
+  "profile": "desktop",
+  "cpu": {
+    "model": "Nehalem",
+    "cores": 4
+  },
+  "memory_mb": 2048,
+  "storage": {
+    "type": "nvme",
+    "size_gb": 1,
+    "bus": "pcie",
+    "model": "QEMU NVMe"
+  },
+  "network": {
+    "type": "e1000",
+    "model": "e1000",
+    "speed": "1000"
+  },
+  "usb_controller": "piix3-usb-uhci",
+  "usb_devices": [
+    {
+      "type": "usb-kbd",
+      "name": "QEMU USB Keyboard"
+    },
+    {
+      "type": "usb-tablet",
+      "name": "QEMU USB Tablet"
+    }
+  ],
+  "gpu": {
+    "type": "VGA",
+    "model": "vmware-svga",
+    "vram_mb": 16
+  },
+  "sound": null,
+  "qemu_args": [
+    "-cpu",
+    "Nehalem",
+    "-smp",
+    "4",
+    "-m",
+    "2048",
+    "-nographic",
+    "-serial",
+    "stdio",
+    "-drive",
+    "file=DISK_IMAGE,format=raw,if=none,id=nvme0",
+    "-device",
+    "nvme,serial=deadbeef,drive=nvme0",
+    "-netdev",
+    "user,id=net0",
+    "-device",
+    "e1000,netdev=net0",
+    "-device",
+    "piix3-usb-uhci",
+    "-device",
+    "usb-kbd",
+    "-device",
+    "usb-tablet",
+    "-vga",
+    "vmware-svga"
+  ]
+}

@@ -1,0 +1,43 @@
+{
+  "machine_id": "cebb1673a6e4",
+  "profile": "server",
+  "cpu": {
+    "model": "qemu64",
+    "cores": 32
+  },
+  "memory_mb": 32768,
+  "storage": {
+    "type": "ide-cd",
+    "size_gb": 0,
+    "bus": "ide",
+    "model": "QEMU DVD-ROM"
+  },
+  "network": {
+    "type": "ne2k_pci",
+    "model": "ne2k_pci",
+    "speed": "10"
+  },
+  "usb_controller": null,
+  "usb_devices": [],
+  "gpu": null,
+  "sound": null,
+  "qemu_args": [
+    "-cpu",
+    "qemu64",
+    "-smp",
+    "32",
+    "-m",
+    "32768",
+    "-nographic",
+    "-serial",
+    "stdio",
+    "-drive",
+    "file=DISK_IMAGE,format=raw,if=ide,media=cdrom",
+    "-netdev",
+    "user,id=net0",
+    "-device",
+    "ne2k_pci,netdev=net0",
+    "-vga",
+    "none"
+  ]
+}

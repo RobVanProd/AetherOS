@@ -1,0 +1,45 @@
+{
+  "machine_id": "75ce4c7d2e8f",
+  "profile": "embedded",
+  "cpu": {
+    "model": "SandyBridge",
+    "cores": 2
+  },
+  "memory_mb": 256,
+  "storage": {
+    "type": "ide-hd",
+    "size_gb": 1,
+    "bus": "ide",
+    "model": "QEMU HARDDISK"
+  },
+  "network": {
+    "type": "rtl8139",
+    "model": "rtl8139",
+    "speed": "100"
+  },
+  "usb_controller": "usb-ehci",
+  "usb_devices": [],
+  "gpu": null,
+  "sound": null,
+  "qemu_args": [
+    "-cpu",
+    "SandyBridge",
+    "-smp",
+    "2",
+    "-m",
+    "256",
+    "-nographic",
+    "-serial",
+    "stdio",
+    "-drive",
+    "file=DISK_IMAGE,format=raw,if=ide,media=disk",
+    "-netdev",
+    "user,id=net0",
+    "-device",
+    "rtl8139,netdev=net0",
+    "-device",
+    "usb-ehci",
+    "-vga",
+    "none"
+  ]
+}

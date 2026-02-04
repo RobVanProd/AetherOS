@@ -1,0 +1,39 @@
+{
+  "machine_id": "aae1ac7ae805",
+  "profile": "minimal",
+  "cpu": {
+    "model": "qemu64",
+    "cores": 1
+  },
+  "memory_mb": 512,
+  "storage": {
+    "type": "virtio-blk",
+    "size_gb": 1
+  },
+  "network": null,
+  "usb_devices": [
+    {
+      "type": "usb-mouse",
+      "name": "USB Mouse"
+    }
+  ],
+  "qemu_args": [
+    "-enable-kvm",
+    "-cpu",
+    "qemu64",
+    "-smp",
+    "1",
+    "-m",
+    "512",
+    "-nographic",
+    "-serial",
+    "stdio",
+    "-drive",
+    "file=DISK_IMAGE,format=raw,if=virtio",
+    "-nic",
+    "none",
+    "-usb",
+    "-device",
+    "usb-mouse"
+  ]
+}

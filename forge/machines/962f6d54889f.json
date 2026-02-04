@@ -1,0 +1,52 @@
+{
+  "machine_id": "962f6d54889f",
+  "profile": "embedded",
+  "cpu": {
+    "model": "qemu64",
+    "cores": 2
+  },
+  "memory_mb": 768,
+  "storage": {
+    "type": "ide-hd",
+    "size_gb": 1,
+    "bus": "ide",
+    "model": "QEMU HARDDISK"
+  },
+  "network": {
+    "type": "rtl8139",
+    "model": "rtl8139",
+    "speed": "100"
+  },
+  "usb_controller": "qemu-xhci",
+  "usb_devices": [
+    {
+      "type": "usb-tablet",
+      "name": "QEMU USB Tablet"
+    }
+  ],
+  "gpu": null,
+  "sound": null,
+  "qemu_args": [
+    "-cpu",
+    "qemu64",
+    "-smp",
+    "2",
+    "-m",
+    "768",
+    "-nographic",
+    "-serial",
+    "stdio",
+    "-drive",
+    "file=DISK_IMAGE,format=raw,if=ide,media=disk",
+    "-netdev",
+    "user,id=net0",
+    "-device",
+    "rtl8139,netdev=net0",
+    "-device",
+    "qemu-xhci",
+    "-device",
+    "usb-tablet",
+    "-vga",
+    "none"
+  ]
+}

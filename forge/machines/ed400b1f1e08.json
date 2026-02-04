@@ -1,0 +1,39 @@
+{
+  "machine_id": "ed400b1f1e08",
+  "profile": "minimal",
+  "cpu": {
+    "model": "SandyBridge",
+    "cores": 2
+  },
+  "memory_mb": 256,
+  "storage": {
+    "type": "usb-storage",
+    "size_gb": 1,
+    "bus": "usb",
+    "model": "QEMU USB HARDDRIVE"
+  },
+  "network": null,
+  "usb_controller": null,
+  "usb_devices": [],
+  "gpu": null,
+  "sound": null,
+  "qemu_args": [
+    "-cpu",
+    "SandyBridge",
+    "-smp",
+    "2",
+    "-m",
+    "256",
+    "-nographic",
+    "-serial",
+    "stdio",
+    "-drive",
+    "file=DISK_IMAGE,format=raw,if=none,id=usbdisk",
+    "-device",
+    "usb-storage,drive=usbdisk",
+    "-nic",
+    "none",
+    "-vga",
+    "none"
+  ]
+}

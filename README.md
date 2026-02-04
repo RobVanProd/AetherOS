@@ -20,15 +20,25 @@ Read the practical definition here:
   - `docs/aether_os/aether_roadmap.md` (phased roadmap)
 
 ## Quickstart (today)
+
 Right now the build harness targets legacy/MyOS while we migrate modules.
 
+### Option A — quick boot (legacy harness)
 ```bash
 # from repo root
 ./tools/run_qemu.sh
 ```
 
+### Option B — full validation pipeline (The Forge)
+```bash
+# from repo root
+cd forge
+docker compose up forge
+```
+
 Toolchain notes:
 - `docs/build_toolchain.md`
+- `docs/THE_FORGE.md`
 
 ## Repo layout
 - `legacy/` — imported projects with preserved history

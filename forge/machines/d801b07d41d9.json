@@ -1,0 +1,61 @@
+{
+  "machine_id": "d801b07d41d9",
+  "profile": "desktop",
+  "cpu": {
+    "model": "Haswell",
+    "cores": 4
+  },
+  "memory_mb": 4096,
+  "storage": {
+    "type": "virtio-blk",
+    "size_gb": 1,
+    "bus": "virtio"
+  },
+  "network": {
+    "type": "ne2k_pci",
+    "model": "ne2k_pci",
+    "speed": "10"
+  },
+  "usb_controller": "usb-ehci",
+  "usb_devices": [
+    {
+      "type": "usb-tablet",
+      "name": "QEMU USB Tablet"
+    },
+    {
+      "type": "usb-mouse",
+      "name": "QEMU USB Mouse"
+    }
+  ],
+  "gpu": {
+    "type": "VGA",
+    "model": "vmware-svga",
+    "vram_mb": 16
+  },
+  "sound": null,
+  "qemu_args": [
+    "-cpu",
+    "Haswell",
+    "-smp",
+    "4",
+    "-m",
+    "4096",
+    "-nographic",
+    "-serial",
+    "stdio",
+    "-drive",
+    "file=DISK_IMAGE,format=raw,if=virtio",
+    "-netdev",
+    "user,id=net0",
+    "-device",
+    "ne2k_pci,netdev=net0",
+    "-device",
+    "usb-ehci",
+    "-device",
+    "usb-tablet",
+    "-device",
+    "usb-mouse",
+    "-vga",
+    "vmware-svga"
+  ]
+}

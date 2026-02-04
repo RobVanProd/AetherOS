@@ -1,0 +1,37 @@
+{
+  "machine_id": "3af85ded6c77",
+  "profile": "minimal",
+  "cpu": {
+    "model": "qemu64",
+    "cores": 1
+  },
+  "memory_mb": 512,
+  "storage": {
+    "type": "ide-hd",
+    "size_gb": 1,
+    "bus": "ide",
+    "model": "QEMU HARDDISK"
+  },
+  "network": null,
+  "usb_controller": null,
+  "usb_devices": [],
+  "gpu": null,
+  "sound": null,
+  "qemu_args": [
+    "-cpu",
+    "qemu64",
+    "-smp",
+    "1",
+    "-m",
+    "512",
+    "-nographic",
+    "-serial",
+    "stdio",
+    "-drive",
+    "file=DISK_IMAGE,format=raw,if=ide,media=disk",
+    "-nic",
+    "none",
+    "-vga",
+    "none"
+  ]
+}

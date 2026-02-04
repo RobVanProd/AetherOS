@@ -1,0 +1,64 @@
+{
+  "machine_id": "a26893ea894b",
+  "profile": "desktop",
+  "cpu": {
+    "model": "SandyBridge",
+    "cores": 2
+  },
+  "memory_mb": 4096,
+  "storage": {
+    "type": "ide-hd",
+    "size_gb": 1,
+    "bus": "ide",
+    "model": "QEMU HARDDISK"
+  },
+  "network": {
+    "type": "rtl8139",
+    "model": "rtl8139",
+    "speed": "100"
+  },
+  "usb_controller": "piix3-usb-uhci",
+  "usb_devices": [
+    {
+      "type": "usb-mouse",
+      "name": "QEMU USB Mouse"
+    },
+    {
+      "type": "usb-tablet",
+      "name": "QEMU USB Tablet"
+    },
+    {
+      "type": "usb-kbd",
+      "name": "QEMU USB Keyboard"
+    }
+  ],
+  "gpu": null,
+  "sound": null,
+  "qemu_args": [
+    "-cpu",
+    "SandyBridge",
+    "-smp",
+    "2",
+    "-m",
+    "4096",
+    "-nographic",
+    "-serial",
+    "stdio",
+    "-drive",
+    "file=DISK_IMAGE,format=raw,if=ide,media=disk",
+    "-netdev",
+    "user,id=net0",
+    "-device",
+    "rtl8139,netdev=net0",
+    "-device",
+    "piix3-usb-uhci",
+    "-device",
+    "usb-mouse",
+    "-device",
+    "usb-tablet",
+    "-device",
+    "usb-kbd",
+    "-vga",
+    "none"
+  ]
+}

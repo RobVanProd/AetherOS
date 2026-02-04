@@ -1,0 +1,13 @@
+# Forge generated artifacts
+/build/
+/cache/
+/images/
+/results/
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+
+# OS/editor
+.DS_Store

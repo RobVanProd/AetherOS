@@ -1,0 +1,43 @@
+{
+  "machine_id": "3afa1771f25f",
+  "profile": "embedded",
+  "cpu": {
+    "model": "SandyBridge",
+    "cores": 2
+  },
+  "memory_mb": 512,
+  "storage": {
+    "type": "ide-cd",
+    "size_gb": 0,
+    "bus": "ide",
+    "model": "QEMU DVD-ROM"
+  },
+  "network": {
+    "type": "virtio-net-pci",
+    "model": "virtio",
+    "speed": "10000"
+  },
+  "usb_controller": null,
+  "usb_devices": [],
+  "gpu": null,
+  "sound": null,
+  "qemu_args": [
+    "-cpu",
+    "SandyBridge",
+    "-smp",
+    "2",
+    "-m",
+    "512",
+    "-nographic",
+    "-serial",
+    "stdio",
+    "-drive",
+    "file=DISK_IMAGE,format=raw,if=ide,media=cdrom",
+    "-netdev",
+    "user,id=net0",
+    "-device",
+    "virtio-net-pci,netdev=net0",
+    "-vga",
+    "none"
+  ]
+}

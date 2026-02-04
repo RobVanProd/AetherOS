@@ -1,0 +1,56 @@
+{
+  "machine_id": "fa799c95513a",
+  "profile": "desktop",
+  "cpu": {
+    "model": "IvyBridge",
+    "cores": 4
+  },
+  "memory_mb": 4096,
+  "storage": {
+    "type": "ide-hd",
+    "size_gb": 1,
+    "bus": "ide",
+    "model": "QEMU HARDDISK"
+  },
+  "network": null,
+  "usb_controller": "usb-ehci",
+  "usb_devices": [
+    {
+      "type": "usb-kbd",
+      "name": "QEMU USB Keyboard"
+    },
+    {
+      "type": "usb-tablet",
+      "name": "QEMU USB Tablet"
+    }
+  ],
+  "gpu": {
+    "type": "VGA",
+    "model": "std",
+    "vram_mb": 16
+  },
+  "sound": null,
+  "qemu_args": [
+    "-cpu",
+    "IvyBridge",
+    "-smp",
+    "4",
+    "-m",
+    "4096",
+    "-nographic",
+    "-serial",
+    "stdio",
+    "-drive",
+    "file=DISK_IMAGE,format=raw,if=ide,media=disk",
+    "-nic",
+    "none",
+    "-device",
+    "usb-ehci",
+    "-device",
+    "usb-kbd",
+    "-device",
+    "usb-tablet",
+    "-vga",
+    "std"
+  ]
+}

@@ -1,0 +1,44 @@
+{
+  "machine_id": "aafab933648c",
+  "profile": "server",
+  "cpu": {
+    "model": "qemu64",
+    "cores": 8
+  },
+  "memory_mb": 131072,
+  "storage": {
+    "type": "virtio-blk",
+    "size_gb": 1,
+    "bus": "virtio"
+  },
+  "network": {
+    "type": "e1000e",
+    "model": "e1000e",
+    "speed": "1000"
+  },
+  "usb_controller": "usb-ehci",
+  "usb_devices": [],
+  "gpu": null,
+  "sound": null,
+  "qemu_args": [
+    "-cpu",
+    "qemu64",
+    "-smp",
+    "8",
+    "-m",
+    "131072",
+    "-nographic",
+    "-serial",
+    "stdio",
+    "-drive",
+    "file=DISK_IMAGE,format=raw,if=virtio",
+    "-netdev",
+    "user,id=net0",
+    "-device",
+    "e1000e,netdev=net0",
+    "-device",
+    "usb-ehci",
+    "-vga",
+    "none"
+  ]
+}

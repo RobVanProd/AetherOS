@@ -1,0 +1,58 @@
+{
+  "machine_id": "28ae4485745c",
+  "profile": "desktop",
+  "cpu": {
+    "model": "qemu64",
+    "cores": 4
+  },
+  "memory_mb": 1024,
+  "storage": {
+    "type": "nvme",
+    "size_gb": 1
+  },
+  "network": {
+    "type": "e1000",
+    "model": "e1000"
+  },
+  "usb_devices": [
+    {
+      "type": "usb-kbd",
+      "name": "USB Keyboard"
+    },
+    {
+      "type": "usb-tablet",
+      "name": "USB Tablet"
+    },
+    {
+      "type": "usb-mouse",
+      "name": "USB Mouse"
+    }
+  ],
+  "qemu_args": [
+    "-enable-kvm",
+    "-cpu",
+    "qemu64",
+    "-smp",
+    "4",
+    "-m",
+    "1024",
+    "-nographic",
+    "-serial",
+    "stdio",
+    "-drive",
+    "file=DISK_IMAGE,format=raw,if=none,id=nvme0",
+    "-device",
+    "nvme,serial=deadbeef,drive=nvme0",
+    "-netdev",
+    "user,id=net0",
+    "-device",
+    "e1000,netdev=net0",
+    "-usb",
+    "-device",
+    "usb-kbd",
+    "-device",
+    "usb-tablet",
+    "-device",
+    "usb-mouse"
+  ]
+}

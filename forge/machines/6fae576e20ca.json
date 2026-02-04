@@ -1,0 +1,69 @@
+{
+  "machine_id": "6fae576e20ca",
+  "profile": "workstation",
+  "cpu": {
+    "model": "qemu64",
+    "cores": 8
+  },
+  "memory_mb": 8192,
+  "storage": {
+    "type": "usb-storage",
+    "size_gb": 1,
+    "bus": "usb",
+    "model": "QEMU USB HARDDRIVE"
+  },
+  "network": {
+    "type": "e1000",
+    "model": "e1000",
+    "speed": "1000"
+  },
+  "usb_controller": "piix3-usb-uhci",
+  "usb_devices": [
+    {
+      "type": "usb-kbd",
+      "name": "QEMU USB Keyboard"
+    },
+    {
+      "type": "usb-tablet",
+      "name": "QEMU USB Tablet"
+    }
+  ],
+  "gpu": {
+    "type": "VGA",
+    "model": "std",
+    "vram_mb": 16
+  },
+  "sound": {
+    "type": "SB16",
+    "model": "sb16"
+  },
+  "qemu_args": [
+    "-cpu",
+    "qemu64",
+    "-smp",
+    "8",
+    "-m",
+    "8192",
+    "-nographic",
+    "-serial",
+    "stdio",
+    "-drive",
+    "file=DISK_IMAGE,format=raw,if=none,id=usbdisk",
+    "-device",
+    "usb-storage,drive=usbdisk",
+    "-netdev",
+    "user,id=net0",
+    "-device",
+    "e1000,netdev=net0",
+    "-device",
+    "piix3-usb-uhci",
+    "-device",
+    "usb-kbd",
+    "-device",
+    "usb-tablet",
+    "-vga",
+    "std",
+    "-device",
+    "sb16"
+  ]
+}

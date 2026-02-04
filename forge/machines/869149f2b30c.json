@@ -1,0 +1,47 @@
+{
+  "machine_id": "869149f2b30c",
+  "profile": "embedded",
+  "cpu": {
+    "model": "qemu64",
+    "cores": 2
+  },
+  "memory_mb": 768,
+  "storage": {
+    "type": "ide-cd",
+    "size_gb": 0,
+    "bus": "ide",
+    "model": "QEMU DVD-ROM"
+  },
+  "network": {
+    "type": "e1000",
+    "model": "e1000",
+    "speed": "1000"
+  },
+  "usb_controller": null,
+  "usb_devices": [],
+  "gpu": {
+    "type": "VGA",
+    "model": "cirrus",
+    "vram_mb": 4
+  },
+  "sound": null,
+  "qemu_args": [
+    "-cpu",
+    "qemu64",
+    "-smp",
+    "2",
+    "-m",
+    "768",
+    "-nographic",
+    "-serial",
+    "stdio",
+    "-drive",
+    "file=DISK_IMAGE,format=raw,if=ide,media=cdrom",
+    "-netdev",
+    "user,id=net0",
+    "-device",
+    "e1000,netdev=net0",
+    "-vga",
+    "cirrus"
+  ]
+}

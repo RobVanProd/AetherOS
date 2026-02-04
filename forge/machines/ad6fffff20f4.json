@@ -1,0 +1,75 @@
+{
+  "machine_id": "ad6fffff20f4",
+  "profile": "desktop",
+  "cpu": {
+    "model": "Haswell",
+    "cores": 4
+  },
+  "memory_mb": 3072,
+  "storage": {
+    "type": "usb-storage",
+    "size_gb": 1,
+    "bus": "usb",
+    "model": "QEMU USB HARDDRIVE"
+  },
+  "network": {
+    "type": "virtio-net-pci",
+    "model": "virtio",
+    "speed": "10000"
+  },
+  "usb_controller": "qemu-xhci",
+  "usb_devices": [
+    {
+      "type": "usb-tablet",
+      "name": "QEMU USB Tablet"
+    },
+    {
+      "type": "usb-mouse",
+      "name": "QEMU USB Mouse"
+    },
+    {
+      "type": "usb-kbd",
+      "name": "QEMU USB Keyboard"
+    }
+  ],
+  "gpu": {
+    "type": "VGA",
+    "model": "vmware-svga",
+    "vram_mb": 16
+  },
+  "sound": {
+    "type": "SB16",
+    "model": "sb16"
+  },
+  "qemu_args": [
+    "-cpu",
+    "Haswell",
+    "-smp",
+    "4",
+    "-m",
+    "3072",
+    "-nographic",
+    "-serial",
+    "stdio",
+    "-drive",
+    "file=DISK_IMAGE,format=raw,if=none,id=usbdisk",
+    "-device",
+    "usb-storage,drive=usbdisk",
+    "-netdev",
+    "user,id=net0",
+    "-device",
+    "virtio-net-pci,netdev=net0",
+    "-device",
+    "qemu-xhci",
+    "-device",
+    "usb-tablet",
+    "-device",
+    "usb-mouse",
+    "-device",
+    "usb-kbd",
+    "-vga",
+    "vmware-svga",
+    "-device",
+    "sb16"
+  ]
+}

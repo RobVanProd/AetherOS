@@ -1,0 +1,54 @@
+{
+  "machine_id": "d86ca89f14dc",
+  "profile": "desktop",
+  "cpu": {
+    "model": "qemu64",
+    "cores": 4
+  },
+  "memory_mb": 1536,
+  "storage": {
+    "type": "usb-storage",
+    "size_gb": 1,
+    "bus": "usb",
+    "model": "QEMU USB HARDDRIVE"
+  },
+  "network": {
+    "type": "virtio-net-pci",
+    "model": "virtio",
+    "speed": "10000"
+  },
+  "usb_controller": null,
+  "usb_devices": [],
+  "gpu": {
+    "type": "VGA",
+    "model": "virtio-vga",
+    "vram_mb": 256
+  },
+  "sound": {
+    "type": "Intel HDA",
+    "model": "intel-hda"
+  },
+  "qemu_args": [
+    "-cpu",
+    "qemu64",
+    "-smp",
+    "4",
+    "-m",
+    "1536",
+    "-nographic",
+    "-serial",
+    "stdio",
+    "-drive",
+    "file=DISK_IMAGE,format=raw,if=none,id=usbdisk",
+    "-device",
+    "usb-storage,drive=usbdisk",
+    "-netdev",
+    "user,id=net0",
+    "-device",
+    "virtio-net-pci,netdev=net0",
+    "-vga",
+    "virtio-vga",
+    "-device",
+    "intel-hda"
+  ]
+}

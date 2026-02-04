@@ -1,0 +1,61 @@
+{
+  "machine_id": "c84e5e56aff0",
+  "profile": "workstation",
+  "cpu": {
+    "model": "qemu64",
+    "cores": 16
+  },
+  "memory_mb": 16384,
+  "storage": {
+    "type": "virtio-blk",
+    "size_gb": 1,
+    "bus": "virtio"
+  },
+  "network": {
+    "type": "e1000",
+    "model": "e1000",
+    "speed": "1000"
+  },
+  "usb_controller": "usb-ehci",
+  "usb_devices": [
+    {
+      "type": "usb-kbd",
+      "name": "QEMU USB Keyboard"
+    },
+    {
+      "type": "usb-tablet",
+      "name": "QEMU USB Tablet"
+    }
+  ],
+  "gpu": {
+    "type": "VGA",
+    "model": "std",
+    "vram_mb": 16
+  },
+  "sound": null,
+  "qemu_args": [
+    "-cpu",
+    "qemu64",
+    "-smp",
+    "16",
+    "-m",
+    "16384",
+    "-nographic",
+    "-serial",
+    "stdio",
+    "-drive",
+    "file=DISK_IMAGE,format=raw,if=virtio",
+    "-netdev",
+    "user,id=net0",
+    "-device",
+    "e1000,netdev=net0",
+    "-device",
+    "usb-ehci",
+    "-device",
+    "usb-kbd",
+    "-device",
+    "usb-tablet",
+    "-vga",
+    "std"
+  ]
+}

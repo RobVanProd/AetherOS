@@ -1,0 +1,73 @@
+{
+  "machine_id": "de2e796da723",
+  "profile": "desktop",
+  "cpu": {
+    "model": "qemu64",
+    "cores": 4
+  },
+  "memory_mb": 1024,
+  "storage": {
+    "type": "ide-hd",
+    "size_gb": 1,
+    "bus": "ide",
+    "model": "QEMU HARDDISK"
+  },
+  "network": {
+    "type": "ne2k_pci",
+    "model": "ne2k_pci",
+    "speed": "10"
+  },
+  "usb_controller": "qemu-xhci",
+  "usb_devices": [
+    {
+      "type": "usb-mouse",
+      "name": "QEMU USB Mouse"
+    },
+    {
+      "type": "usb-tablet",
+      "name": "QEMU USB Tablet"
+    },
+    {
+      "type": "usb-kbd",
+      "name": "QEMU USB Keyboard"
+    }
+  ],
+  "gpu": {
+    "type": "VGA",
+    "model": "vmware-svga",
+    "vram_mb": 16
+  },
+  "sound": {
+    "type": "AC97",
+    "model": "ac97"
+  },
+  "qemu_args": [
+    "-cpu",
+    "qemu64",
+    "-smp",
+    "4",
+    "-m",
+    "1024",
+    "-nographic",
+    "-serial",
+    "stdio",
+    "-drive",
+    "file=DISK_IMAGE,format=raw,if=ide,media=disk",
+    "-netdev",
+    "user,id=net0",
+    "-device",
+    "ne2k_pci,netdev=net0",
+    "-device",
+    "qemu-xhci",
+    "-device",
+    "usb-mouse",
+    "-device",
+    "usb-tablet",
+    "-device",
+    "usb-kbd",
+    "-vga",
+    "vmware-svga",
+    "-device",
+    "ac97"
+  ]
+}

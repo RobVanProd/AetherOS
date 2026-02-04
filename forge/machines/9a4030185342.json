@@ -1,0 +1,41 @@
+{
+  "machine_id": "9a4030185342",
+  "profile": "minimal",
+  "cpu": {
+    "model": "qemu64",
+    "cores": 1
+  },
+  "memory_mb": 512,
+  "storage": {
+    "type": "scsi-hd",
+    "size_gb": 1,
+    "bus": "scsi",
+    "model": "QEMU SCSI"
+  },
+  "network": null,
+  "usb_controller": null,
+  "usb_devices": [],
+  "gpu": null,
+  "sound": null,
+  "qemu_args": [
+    "-cpu",
+    "qemu64",
+    "-smp",
+    "1",
+    "-m",
+    "512",
+    "-nographic",
+    "-serial",
+    "stdio",
+    "-device",
+    "virtio-scsi-pci,id=scsi0",
+    "-drive",
+    "file=DISK_IMAGE,format=raw,if=none,id=hd0",
+    "-device",
+    "scsi-hd,drive=hd0,bus=scsi0.0",
+    "-nic",
+    "none",
+    "-vga",
+    "none"
+  ]
+}

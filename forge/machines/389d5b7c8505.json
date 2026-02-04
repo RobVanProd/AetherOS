@@ -1,0 +1,69 @@
+{
+  "machine_id": "389d5b7c8505",
+  "profile": "desktop",
+  "cpu": {
+    "model": "Broadwell",
+    "cores": 8
+  },
+  "memory_mb": 3072,
+  "storage": {
+    "type": "usb-storage",
+    "size_gb": 1,
+    "bus": "usb",
+    "model": "QEMU USB HARDDRIVE"
+  },
+  "network": null,
+  "usb_controller": "usb-ehci",
+  "usb_devices": [
+    {
+      "type": "usb-kbd",
+      "name": "QEMU USB Keyboard"
+    },
+    {
+      "type": "usb-tablet",
+      "name": "QEMU USB Tablet"
+    },
+    {
+      "type": "usb-mouse",
+      "name": "QEMU USB Mouse"
+    }
+  ],
+  "gpu": {
+    "type": "VGA",
+    "model": "std",
+    "vram_mb": 16
+  },
+  "sound": {
+    "type": "AC97",
+    "model": "ac97"
+  },
+  "qemu_args": [
+    "-cpu",
+    "Broadwell",
+    "-smp",
+    "8",
+    "-m",
+    "3072",
+    "-nographic",
+    "-serial",
+    "stdio",
+    "-drive",
+    "file=DISK_IMAGE,format=raw,if=none,id=usbdisk",
+    "-device",
+    "usb-storage,drive=usbdisk",
+    "-nic",
+    "none",
+    "-device",
+    "usb-ehci",
+    "-device",
+    "usb-kbd",
+    "-device",
+    "usb-tablet",
+    "-device",
+    "usb-mouse",
+    "-vga",
+    "std",
+    "-device",
+    "ac97"
+  ]
+}

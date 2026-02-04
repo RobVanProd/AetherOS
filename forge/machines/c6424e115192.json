@@ -1,0 +1,72 @@
+{
+  "machine_id": "c6424e115192",
+  "profile": "desktop",
+  "cpu": {
+    "model": "Skylake-Client",
+    "cores": 4
+  },
+  "memory_mb": 2048,
+  "storage": {
+    "type": "scsi-hd",
+    "size_gb": 1,
+    "bus": "scsi",
+    "model": "QEMU SCSI"
+  },
+  "network": {
+    "type": "rtl8139",
+    "model": "rtl8139",
+    "speed": "100"
+  },
+  "usb_controller": "usb-ehci",
+  "usb_devices": [
+    {
+      "type": "usb-mouse",
+      "name": "QEMU USB Mouse"
+    },
+    {
+      "type": "usb-tablet",
+      "name": "QEMU USB Tablet"
+    },
+    {
+      "type": "usb-kbd",
+      "name": "QEMU USB Keyboard"
+    }
+  ],
+  "gpu": {
+    "type": "VGA",
+    "model": "vmware-svga",
+    "vram_mb": 16
+  },
+  "sound": null,
+  "qemu_args": [
+    "-cpu",
+    "Skylake-Client",
+    "-smp",
+    "4",
+    "-m",
+    "2048",
+    "-nographic",
+    "-serial",
+    "stdio",
+    "-device",
+    "virtio-scsi-pci,id=scsi0",
+    "-drive",
+    "file=DISK_IMAGE,format=raw,if=none,id=hd0",
+    "-device",
+    "scsi-hd,drive=hd0,bus=scsi0.0",
+    "-netdev",
+    "user,id=net0",
+    "-device",
+    "rtl8139,netdev=net0",
+    "-device",
+    "usb-ehci",
+    "-device",
+    "usb-mouse",
+    "-device",
+    "usb-tablet",
+    "-device",
+    "usb-kbd",
+    "-vga",
+    "vmware-svga"
+  ]
+}

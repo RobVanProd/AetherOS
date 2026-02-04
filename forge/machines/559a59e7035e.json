@@ -1,0 +1,43 @@
+{
+  "machine_id": "559a59e7035e",
+  "profile": "server",
+  "cpu": {
+    "model": "Nehalem",
+    "cores": 4
+  },
+  "memory_mb": 65536,
+  "storage": {
+    "type": "ide-hd",
+    "size_gb": 1,
+    "bus": "ide",
+    "model": "QEMU HARDDISK"
+  },
+  "network": {
+    "type": "pcnet",
+    "model": "pcnet",
+    "speed": "10"
+  },
+  "usb_controller": null,
+  "usb_devices": [],
+  "gpu": null,
+  "sound": null,
+  "qemu_args": [
+    "-cpu",
+    "Nehalem",
+    "-smp",
+    "4",
+    "-m",
+    "65536",
+    "-nographic",
+    "-serial",
+    "stdio",
+    "-drive",
+    "file=DISK_IMAGE,format=raw,if=ide,media=disk",
+    "-netdev",
+    "user,id=net0",
+    "-device",
+    "pcnet,netdev=net0",
+    "-vga",
+    "none"
+  ]
+}

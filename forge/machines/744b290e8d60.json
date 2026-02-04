@@ -1,0 +1,73 @@
+{
+  "machine_id": "744b290e8d60",
+  "profile": "workstation",
+  "cpu": {
+    "model": "qemu64",
+    "cores": 32
+  },
+  "memory_mb": 16384,
+  "storage": {
+    "type": "ide-cd",
+    "size_gb": 0,
+    "bus": "ide",
+    "model": "QEMU DVD-ROM"
+  },
+  "network": {
+    "type": "e1000e",
+    "model": "e1000e",
+    "speed": "1000"
+  },
+  "usb_controller": "qemu-xhci",
+  "usb_devices": [
+    {
+      "type": "usb-kbd",
+      "name": "QEMU USB Keyboard"
+    },
+    {
+      "type": "usb-mouse",
+      "name": "QEMU USB Mouse"
+    },
+    {
+      "type": "usb-tablet",
+      "name": "QEMU USB Tablet"
+    }
+  ],
+  "gpu": {
+    "type": "VGA",
+    "model": "vmware-svga",
+    "vram_mb": 16
+  },
+  "sound": {
+    "type": "SB16",
+    "model": "sb16"
+  },
+  "qemu_args": [
+    "-cpu",
+    "qemu64",
+    "-smp",
+    "32",
+    "-m",
+    "16384",
+    "-nographic",
+    "-serial",
+    "stdio",
+    "-drive",
+    "file=DISK_IMAGE,format=raw,if=ide,media=cdrom",
+    "-netdev",
+    "user,id=net0",
+    "-device",
+    "e1000e,netdev=net0",
+    "-device",
+    "qemu-xhci",
+    "-device",
+    "usb-kbd",
+    "-device",
+    "usb-mouse",
+    "-device",
+    "usb-tablet",
+    "-vga",
+    "vmware-svga",
+    "-device",
+    "sb16"
+  ]
+}

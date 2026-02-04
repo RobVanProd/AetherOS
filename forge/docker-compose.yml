@@ -1,0 +1,58 @@
+version: '3.8'
+
+services:
+  forge:
+    build: .
+    image: aeternum/forge:latest
+    privileged: true  # Required for KVM
+    volumes:
+      - ./results:/forge/results
+      - ./images:/forge/images
+      - ./machines:/forge/machines
+    environment:
+      - KERNEL_VERSION=6.6.70
+    command: all
+
+  # Individual components for development
+  cartographer:
+    build: .
+    image: aeternum/forge:latest
+    volumes:
+      - ./data:/forge/data
+    command: cartographer
+
+  architect:
+    build: .
+    image: aeternum/forge:latest
+    volumes:
+      - ./machines:/forge/machines
+      - ./data:/forge/data
+    command: architect
+
+  foundry:
+    build: .
+    image: aeternum/forge:latest
+    volumes:
+      - ./images:/forge/images
+    command: foundry
+
+  crucible:
+    build: .
+    image: aeternum/forge:latest
+    privileged: true
+    volumes:
+      - ./images:/forge/images
+      - ./machines:/forge/machines
+      - ./results:/forge/results
+    command: crucible
+
+  # Interactive shell for debugging
+  shell:
+    build: .
+    image: aeternum/forge:latest
+    privileged: true
+    volumes:
+      - ./:/forge/workspace
+    command: shell
+    stdin_open: true
+    tty: true

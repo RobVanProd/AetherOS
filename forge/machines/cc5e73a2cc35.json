@@ -1,0 +1,67 @@
+{
+  "machine_id": "cc5e73a2cc35",
+  "profile": "desktop",
+  "cpu": {
+    "model": "qemu64",
+    "cores": 4
+  },
+  "memory_mb": 2048,
+  "storage": {
+    "type": "ide-cd",
+    "size_gb": 0,
+    "bus": "ide",
+    "model": "QEMU DVD-ROM"
+  },
+  "network": {
+    "type": "e1000e",
+    "model": "e1000e",
+    "speed": "1000"
+  },
+  "usb_controller": "piix3-usb-uhci",
+  "usb_devices": [
+    {
+      "type": "usb-tablet",
+      "name": "QEMU USB Tablet"
+    },
+    {
+      "type": "usb-kbd",
+      "name": "QEMU USB Keyboard"
+    }
+  ],
+  "gpu": {
+    "type": "VGA",
+    "model": "virtio-vga",
+    "vram_mb": 256
+  },
+  "sound": {
+    "type": "ES1370",
+    "model": "es1370"
+  },
+  "qemu_args": [
+    "-cpu",
+    "qemu64",
+    "-smp",
+    "4",
+    "-m",
+    "2048",
+    "-nographic",
+    "-serial",
+    "stdio",
+    "-drive",
+    "file=DISK_IMAGE,format=raw,if=ide,media=cdrom",
+    "-netdev",
+    "user,id=net0",
+    "-device",
+    "e1000e,netdev=net0",
+    "-device",
+    "piix3-usb-uhci",
+    "-device",
+    "usb-tablet",
+    "-device",
+    "usb-kbd",
+    "-vga",
+    "virtio-vga",
+    "-device",
+    "es1370"
+  ]
+}

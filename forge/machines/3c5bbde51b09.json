@@ -1,0 +1,75 @@
+{
+  "machine_id": "3c5bbde51b09",
+  "profile": "workstation",
+  "cpu": {
+    "model": "qemu64",
+    "cores": 8
+  },
+  "memory_mb": 65536,
+  "storage": {
+    "type": "nvme",
+    "size_gb": 1,
+    "bus": "pcie",
+    "model": "QEMU NVMe"
+  },
+  "network": {
+    "type": "ne2k_pci",
+    "model": "ne2k_pci",
+    "speed": "10"
+  },
+  "usb_controller": "piix3-usb-uhci",
+  "usb_devices": [
+    {
+      "type": "usb-tablet",
+      "name": "QEMU USB Tablet"
+    },
+    {
+      "type": "usb-kbd",
+      "name": "QEMU USB Keyboard"
+    },
+    {
+      "type": "usb-mouse",
+      "name": "QEMU USB Mouse"
+    }
+  ],
+  "gpu": {
+    "type": "VGA",
+    "model": "cirrus",
+    "vram_mb": 4
+  },
+  "sound": {
+    "type": "Intel HDA",
+    "model": "intel-hda"
+  },
+  "qemu_args": [
+    "-cpu",
+    "qemu64",
+    "-smp",
+    "8",
+    "-m",
+    "65536",
+    "-nographic",
+    "-serial",
+    "stdio",
+    "-drive",
+    "file=DISK_IMAGE,format=raw,if=none,id=nvme0",
+    "-device",
+    "nvme,serial=deadbeef,drive=nvme0",
+    "-netdev",
+    "user,id=net0",
+    "-device",
+    "ne2k_pci,netdev=net0",
+    "-device",
+    "piix3-usb-uhci",
+    "-device",
+    "usb-tablet",
+    "-device",
+    "usb-kbd",
+    "-device",
+    "usb-mouse",
+    "-vga",
+    "cirrus",
+    "-device",
+    "intel-hda"
+  ]
+}

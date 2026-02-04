@@ -1,0 +1,703 @@
+{
+  "machine_id": "b72309b0bb7f",
+  "profile_type": "detected",
+  "hostname": "ubuntu",
+  "dmi_manufacturer": null,
+  "dmi_product": null,
+  "dmi_version": null,
+  "dmi_bios_vendor": null,
+  "dmi_bios_version": null,
+  "cpu_model": "AMD Ryzen 9 9950X 16-Core Processor",
+  "cpu_cores": 1,
+  "cpu_threads": 32,
+  "memory_total_mb": 126424,
+  "pci_devices": [
+    {
+      "vendor_id": "1022",
+      "device_id": "14d8",
+      "subsystem_vendor": null,
+      "subsystem_device": null,
+      "device_class": "0600",
+      "description": "Host bridge"
+    },
+    {
+      "vendor_id": "1022",
+      "device_id": "14d9",
+      "subsystem_vendor": null,
+      "subsystem_device": null,
+      "device_class": "0806",
+      "description": "IOMMU"
+    },
+    {
+      "vendor_id": "1022",
+      "device_id": "14da",
+      "subsystem_vendor": null,
+      "subsystem_device": null,
+      "device_class": "0600",
+      "description": "Host bridge"
+    },
+    {
+      "vendor_id": "1022",
+      "device_id": "14db",
+      "subsystem_vendor": null,
+      "subsystem_device": null,
+      "device_class": "0604",
+      "description": "PCI bridge"
+    },
+    {
+      "vendor_id": "1022",
+      "device_id": "14db",
+      "subsystem_vendor": null,
+      "subsystem_device": null,
+      "device_class": "0604",
+      "description": "PCI bridge"
+    },
+    {
+      "vendor_id": "1022",
+      "device_id": "14db",
+      "subsystem_vendor": null,
+      "subsystem_device": null,
+      "device_class": "0604",
+      "description": "PCI bridge"
+    },
+    {
+      "vendor_id": "1022",
+      "device_id": "14da",
+      "subsystem_vendor": null,
+      "subsystem_device": null,
+      "device_class": "0600",
+      "description": "Host bridge"
+    },
+    {
+      "vendor_id": "1022",
+      "device_id": "14db",
+      "subsystem_vendor": null,
+      "subsystem_device": null,
+      "device_class": "0604",
+      "description": "PCI bridge"
+    },
+    {
+      "vendor_id": "1022",
+      "device_id": "14db",
+      "subsystem_vendor": null,
+      "subsystem_device": null,
+      "device_class": "0604",
+      "description": "PCI bridge"
+    },
+    {
+      "vendor_id": "1022",
+      "device_id": "14da",
+      "subsystem_vendor": null,
+      "subsystem_device": null,
+      "device_class": "0600",
+      "description": "Host bridge"
+    },
+    {
+      "vendor_id": "1022",
+      "device_id": "14da",
+      "subsystem_vendor": null,
+      "subsystem_device": null,
+      "device_class": "0600",
+      "description": "Host bridge"
+    },
+    {
+      "vendor_id": "1022",
+      "device_id": "14da",
+      "subsystem_vendor": null,
+      "subsystem_device": null,
+      "device_class": "0600",
+      "description": "Host bridge"
+    },
+    {
+      "vendor_id": "1022",
+      "device_id": "14dd",
+      "subsystem_vendor": null,
+      "subsystem_device": null,
+      "device_class": "0604",
+      "description": "PCI bridge"
+    },
+    {
+      "vendor_id": "1022",
+      "device_id": "14dd",
+      "subsystem_vendor": null,
+      "subsystem_device": null,
+      "device_class": "0604",
+      "description": "PCI bridge"
+    },
+    {
+      "vendor_id": "1022",
+      "device_id": "790b",
+      "subsystem_vendor": null,
+      "subsystem_device": null,
+      "device_class": "0c05",
+      "description": "SMBus"
+    },
+    {
+      "vendor_id": "1022",
+      "device_id": "790e",
+      "subsystem_vendor": null,
+      "subsystem_device": null,
+      "device_class": "0601",
+      "description": "ISA bridge"
+    },
+    {
+      "vendor_id": "1022",
+      "device_id": "14e0",
+      "subsystem_vendor": null,
+      "subsystem_device": null,
+      "device_class": "0600",
+      "description": "Host bridge"
+    },
+    {
+      "vendor_id": "1022",
+      "device_id": "14e1",
+      "subsystem_vendor": null,
+      "subsystem_device": null,
+      "device_class": "0600",
+      "description": "Host bridge"
+    },
+    {
+      "vendor_id": "1022",
+      "device_id": "14e2",
+      "subsystem_vendor": null,
+      "subsystem_device": null,
+      "device_class": "0600",
+      "description": "Host bridge"
+    },
+    {
+      "vendor_id": "1022",
+      "device_id": "14e3",
+      "subsystem_vendor": null,
+      "subsystem_device": null,
+      "device_class": "0600",
+      "description": "Host bridge"
+    },
+    {
+      "vendor_id": "1022",
+      "device_id": "14e4",
+      "subsystem_vendor": null,
+      "subsystem_device": null,
+      "device_class": "0600",
+      "description": "Host bridge"
+    },
+    {
+      "vendor_id": "1022",
+      "device_id": "14e5",
+      "subsystem_vendor": null,
+      "subsystem_device": null,
+      "device_class": "0600",
+      "description": "Host bridge"
+    },
+    {
+      "vendor_id": "1022",
+      "device_id": "14e6",
+      "subsystem_vendor": null,
+      "subsystem_device": null,
+      "device_class": "0600",
+      "description": "Host bridge"
+    },
+    {
+      "vendor_id": "1022",
+      "device_id": "14e7",
+      "subsystem_vendor": null,
+      "subsystem_device": null,
+      "device_class": "0600",
+      "description": "Host bridge"
+    },
+    {
+      "vendor_id": "c0a9",
+      "device_id": "5419",
+      "subsystem_vendor": null,
+      "subsystem_device": null,
+      "device_class": "0108",
+      "description": "Non-Volatile memory controller"
+    },
+    {
+      "vendor_id": "1002",
+      "device_id": "1478",
+      "subsystem_vendor": null,
+      "subsystem_device": null,
+      "device_class": "0604",
+      "description": "PCI bridge"
+    },
+    {
+      "vendor_id": "1002",
+      "device_id": "1479",
+      "subsystem_vendor": null,
+      "subsystem_device": null,
+      "device_class": "0604",
+      "description": "PCI bridge"
+    },
+    {
+      "vendor_id": "1002",
+      "device_id": "744c",
+      "subsystem_vendor": null,
+      "subsystem_device": null,
+      "device_class": "0300",
+      "description": "VGA compatible controller"
+    },
+    {
+      "vendor_id": "1002",
+      "device_id": "ab30",
+      "subsystem_vendor": null,
+      "subsystem_device": null,
+      "device_class": "0403",
+      "description": "Audio device"
+    },
+    {
+      "vendor_id": "15b7",
+      "device_id": "5030",
+      "subsystem_vendor": null,
+      "subsystem_device": null,
+      "device_class": "0108",
+      "description": "Non-Volatile memory controller"
+    },
+    {
+      "vendor_id": "1022",
+      "device_id": "43f4",
+      "subsystem_vendor": null,
+      "subsystem_device": null,
+      "device_class": "0604",
+      "description": "PCI bridge"
+    },
+    {
+      "vendor_id": "1022",
+      "device_id": "43f5",
+      "subsystem_vendor": null,
+      "subsystem_device": null,
+      "device_class": "0604",
+      "description": "PCI bridge"
+    },
+    {
+      "vendor_id": "1022",
+      "device_id": "43f5",
+      "subsystem_vendor": null,
+      "subsystem_device": null,
+      "device_class": "0604",
+      "description": "PCI bridge"
+    },
+    {
+      "vendor_id": "1022",
+      "device_id": "43f5",
+      "subsystem_vendor": null,
+      "subsystem_device": null,
+      "device_class": "0604",
+      "description": "PCI bridge"
+    },
+    {
+      "vendor_id": "1022",
+      "device_id": "43f5",
+      "subsystem_vendor": null,
+      "subsystem_device": null,
+      "device_class": "0604",
+      "description": "PCI bridge"
+    },
+    {
+      "vendor_id": "1022",
+      "device_id": "43f4",
+      "subsystem_vendor": null,
+      "subsystem_device": null,
+      "device_class": "0604",
+      "description": "PCI bridge"
+    },
+    {
+      "vendor_id": "1022",
+      "device_id": "43f5",
+      "subsystem_vendor": null,
+      "subsystem_device": null,
+      "device_class": "0604",
+      "description": "PCI bridge"
+    },
+    {
+      "vendor_id": "1022",
+      "device_id": "43f5",
+      "subsystem_vendor": null,
+      "subsystem_device": null,
+      "device_class": "0604",
+      "description": "PCI bridge"
+    },
+    {
+      "vendor_id": "1022",
+      "device_id": "43f5",
+      "subsystem_vendor": null,
+      "subsystem_device": null,
+      "device_class": "0604",
+      "description": "PCI bridge"
+    },
+    {
+      "vendor_id": "1022",
+      "device_id": "43f5",
+      "subsystem_vendor": null,
+      "subsystem_device": null,
+      "device_class": "0604",
+      "description": "PCI bridge"
+    },
+    {
+      "vendor_id": "1022",
+      "device_id": "43f5",
+      "subsystem_vendor": null,
+      "subsystem_device": null,
+      "device_class": "0604",
+      "description": "PCI bridge"
+    },
+    {
+      "vendor_id": "1022",
+      "device_id": "43f5",
+      "subsystem_vendor": null,
+      "subsystem_device": null,
+      "device_class": "0604",
+      "description": "PCI bridge"
+    },
+    {
+      "vendor_id": "1022",
+      "device_id": "43f5",
+      "subsystem_vendor": null,
+      "subsystem_device": null,
+      "device_class": "0604",
+      "description": "PCI bridge"
+    },
+    {
+      "vendor_id": "14c3",
+      "device_id": "6639",
+      "subsystem_vendor": null,
+      "subsystem_device": null,
+      "device_class": "0280",
+      "description": "Network controller"
+    },
+    {
+      "vendor_id": "8086",
+      "device_id": "125c",
+      "subsystem_vendor": null,
+      "subsystem_device": null,
+      "device_class": "0200",
+      "description": "Ethernet controller"
+    },
+    {
+      "vendor_id": "1d6a",
+      "device_id": "04c0",
+      "subsystem_vendor": null,
+      "subsystem_device": null,
+      "device_class": "0200",
+      "description": "Ethernet controller"
+    },
+    {
+      "vendor_id": "1022",
+      "device_id": "43fd",
+      "subsystem_vendor": null,
+      "subsystem_device": null,
+      "device_class": "0c03",
+      "description": "USB controller"
+    },
+    {
+      "vendor_id": "1022",
+      "device_id": "43f6",
+      "subsystem_vendor": null,
+      "subsystem_device": null,
+      "device_class": "0106",
+      "description": "SATA controller"
+    },
+    {
+      "vendor_id": "1022",
+      "device_id": "43fd",
+      "subsystem_vendor": null,
+      "subsystem_device": null,
+      "device_class": "0c03",
+      "description": "USB controller"
+    },
+    {
+      "vendor_id": "1022",
+      "device_id": "43f6",
+      "subsystem_vendor": null,
+      "subsystem_device": null,
+      "device_class": "0106",
+      "description": "SATA controller"
+    },
+    {
+      "vendor_id": "1b21",
+      "device_id": "2421",
+      "subsystem_vendor": null,
+      "subsystem_device": null,
+      "device_class": "0604",
+      "description": "PCI bridge"
+    },
+    {
+      "vendor_id": "1b21",
+      "device_id": "2423",
+      "subsystem_vendor": null,
+      "subsystem_device": null,
+      "device_class": "0604",
+      "description": "PCI bridge"
+    },
+    {
+      "vendor_id": "1b21",
+      "device_id": "2423",
+      "subsystem_vendor": null,
+      "subsystem_device": null,
+      "device_class": "0604",
+      "description": "PCI bridge"
+    },
+    {
+      "vendor_id": "1b21",
+      "device_id": "2423",
+      "subsystem_vendor": null,
+      "subsystem_device": null,
+      "device_class": "0604",
+      "description": "PCI bridge"
+    },
+    {
+      "vendor_id": "1b21",
+      "device_id": "2423",
+      "subsystem_vendor": null,
+      "subsystem_device": null,
+      "device_class": "0604",
+      "description": "PCI bridge"
+    },
+    {
+      "vendor_id": "1b21",
+      "device_id": "2426",
+      "subsystem_vendor": null,
+      "subsystem_device": null,
+      "device_class": "0c03",
+      "description": "USB controller"
+    },
+    {
+      "vendor_id": "1b21",
+      "device_id": "2425",
+      "subsystem_vendor": null,
+      "subsystem_device": null,
+      "device_class": "0c03",
+      "description": "USB controller"
+    },
+    {
+      "vendor_id": "1002",
+      "device_id": "13c0",
+      "subsystem_vendor": null,
+      "subsystem_device": null,
+      "device_class": "0300",
+      "description": "VGA compatible controller"
+    },
+    {
+      "vendor_id": "1002",
+      "device_id": "1640",
+      "subsystem_vendor": null,
+      "subsystem_device": null,
+      "device_class": "0403",
+      "description": "Audio device"
+    },
+    {
+      "vendor_id": "1022",
+      "device_id": "1649",
+      "subsystem_vendor": null,
+      "subsystem_device": null,
+      "device_class": "1080",
+      "description": "Encryption controller"
+    },
+    {
+      "vendor_id": "1022",
+      "device_id": "15b6",
+      "subsystem_vendor": null,
+      "subsystem_device": null,
+      "device_class": "0c03",
+      "description": "USB controller"
+    },
+    {
+      "vendor_id": "1022",
+      "device_id": "15b7",
+      "subsystem_vendor": null,
+      "subsystem_device": null,
+      "device_class": "0c03",
+      "description": "USB controller"
+    },
+    {
+      "vendor_id": "1022",
+      "device_id": "15e3",
+      "subsystem_vendor": null,
+      "subsystem_device": null,
+      "device_class": "0403",
+      "description": "Audio device"
+    },
+    {
+      "vendor_id": "1022",
+      "device_id": "15b8",
+      "subsystem_vendor": null,
+      "subsystem_device": null,
+      "device_class": "0c03",
+      "description": "USB controller"
+    }
+  ],
+  "usb_devices": [
+    {
+      "vendor_id": "1d6b",
+      "device_id": "0003",
+      "subsystem_vendor": null,
+      "subsystem_device": null,
+      "device_class": null,
+      "description": "Linux Foundation 3.0 root hub"
+    },
+    {
+      "vendor_id": "1d6b",
+      "device_id": "0002",
+      "subsystem_vendor": null,
+      "subsystem_device": null,
+      "device_class": null,
+      "description": "Linux Foundation 2.0 root hub"
+    },
+    {
+      "vendor_id": "1d6b",
+      "device_id": "0002",
+      "subsystem_vendor": null,
+      "subsystem_device": null,
+      "device_class": null,
+      "description": "Linux Foundation 2.0 root hub"
+    },
+    {
+      "vendor_id": "1d6b",
+      "device_id": "0003",
+      "subsystem_vendor": null,
+      "subsystem_device": null,
+      "device_class": null,
+      "description": "Linux Foundation 3.0 root hub"
+    },
+    {
+      "vendor_id": "1d6b",
+      "device_id": "0003",
+      "subsystem_vendor": null,
+      "subsystem_device": null,
+      "device_class": null,
+      "description": "Linux Foundation 3.0 root hub"
+    },
+    {
+      "vendor_id": "1d6b",
+      "device_id": "0002",
+      "subsystem_vendor": null,
+      "subsystem_device": null,
+      "device_class": null,
+      "description": "Linux Foundation 2.0 root hub"
+    },
+    {
+      "vendor_id": "1d6b",
+      "device_id": "0003",
+      "subsystem_vendor": null,
+      "subsystem_device": null,
+      "device_class": null,
+      "description": "Linux Foundation 3.0 root hub"
+    },
+    {
+      "vendor_id": "1d6b",
+      "device_id": "0002",
+      "subsystem_vendor": null,
+      "subsystem_device": null,
+      "device_class": null,
+      "description": "Linux Foundation 2.0 root hub"
+    },
+    {
+      "vendor_id": "1d6b",
+      "device_id": "0003",
+      "subsystem_vendor": null,
+      "subsystem_device": null,
+      "device_class": null,
+      "description": "Linux Foundation 3.0 root hub"
+    },
+    {
+      "vendor_id": "054c",
+      "device_id": "0ce6",
+      "subsystem_vendor": null,
+      "subsystem_device": null,
+      "device_class": null,
+      "description": "Sony Corp. DualSense Wireless Controller"
+    },
+    {
+      "vendor_id": "2222",
+      "device_id": "0039",
+      "subsystem_vendor": null,
+      "subsystem_device": null,
+      "device_class": null,
+      "description": "MacAlly Macally QKEY USB Keyboard"
+    },
+    {
+      "vendor_id": "0e6a",
+      "device_id": "02c0",
+      "subsystem_vendor": null,
+      "subsystem_device": null,
+      "device_class": null,
+      "description": "Megawin Technology Co., Ltd Defender Gaming Keyboard"
+    },
+    {
+      "vendor_id": "1d6b",
+      "device_id": "0002",
+      "subsystem_vendor": null,
+      "subsystem_device": null,
+      "device_class": null,
+      "description": "Linux Foundation 2.0 root hub"
+    },
+    {
+      "vendor_id": "1d6b",
+      "device_id": "0003",
+      "subsystem_vendor": null,
+      "subsystem_device": null,
+      "device_class": null,
+      "description": "Linux Foundation 3.0 root hub"
+    },
+    {
+      "vendor_id": "0b05",
+      "device_id": "19af",
+      "subsystem_vendor": null,
+      "subsystem_device": null,
+      "device_class": null,
+      "description": "ASUSTek Computer, Inc. AURA LED Controller"
+    },
+    {
+      "vendor_id": "13d3",
+      "device_id": "3588",
+      "subsystem_vendor": null,
+      "subsystem_device": null,
+      "device_class": null,
+      "description": "IMC Networks Wireless_Device"
+    },
+    {
+      "vendor_id": "18f8",
+      "device_id": "0f99",
+      "subsystem_vendor": null,
+      "subsystem_device": null,
+      "device_class": null,
+      "description": "[Maxxter] Optical gaming mouse"
+    },
+    {
+      "vendor_id": "1d6b",
+      "device_id": "0002",
+      "subsystem_vendor": null,
+      "subsystem_device": null,
+      "device_class": null,
+      "description": "Linux Foundation 2.0 root hub"
+    }
+  ],
+  "network_interfaces": [
+    {
+      "name": "enp14s0",
+      "mac": "a0:ad:9f:a0:92:0b",
+      "driver": "atlantic"
+    },
+    {
+      "name": "docker0",
+      "mac": "ce:08:12:dd:bb:48"
+    },
+    {
+      "name": "enp13s0",
+      "mac": "a0:ad:9f:a0:92:0a",
+      "driver": "igc"
+    }
+  ],
+  "block_devices": [
+    {
+      "name": "nvme0n1",
+      "size": "3.6T",
+      "model": "WD_BLACK SN850X 4000GB"
+    },
+    {
+      "name": "nvme1n1",
+      "size": "1.8T",
+      "model": "CT2000T700SSD5"
+    }
+  ],
+  "acpi_tables": null
+}

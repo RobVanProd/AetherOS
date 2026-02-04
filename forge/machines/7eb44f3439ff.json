@@ -1,0 +1,48 @@
+{
+  "machine_id": "7eb44f3439ff",
+  "profile": "minimal",
+  "cpu": {
+    "model": "qemu64",
+    "cores": 2
+  },
+  "memory_mb": 256,
+  "storage": {
+    "type": "usb-storage",
+    "size_gb": 1,
+    "bus": "usb",
+    "model": "QEMU USB HARDDRIVE"
+  },
+  "network": null,
+  "usb_controller": "qemu-xhci",
+  "usb_devices": [
+    {
+      "type": "usb-mouse",
+      "name": "QEMU USB Mouse"
+    }
+  ],
+  "gpu": null,
+  "sound": null,
+  "qemu_args": [
+    "-cpu",
+    "qemu64",
+    "-smp",
+    "2",
+    "-m",
+    "256",
+    "-nographic",
+    "-serial",
+    "stdio",
+    "-drive",
+    "file=DISK_IMAGE,format=raw,if=none,id=usbdisk",
+    "-device",
+    "usb-storage,drive=usbdisk",
+    "-nic",
+    "none",
+    "-device",
+    "qemu-xhci",
+    "-device",
+    "usb-mouse",
+    "-vga",
+    "none"
+  ]
+}

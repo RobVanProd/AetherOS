@@ -1,0 +1,50 @@
+{
+  "machine_id": "0960650c01b1",
+  "profile": "desktop",
+  "cpu": {
+    "model": "qemu64",
+    "cores": 2
+  },
+  "memory_mb": 1024,
+  "storage": {
+    "type": "virtio-blk",
+    "size_gb": 1
+  },
+  "network": {
+    "type": "rtl8139",
+    "model": "rtl8139"
+  },
+  "usb_devices": [
+    {
+      "type": "usb-tablet",
+      "name": "USB Tablet"
+    },
+    {
+      "type": "usb-mouse",
+      "name": "USB Mouse"
+    }
+  ],
+  "qemu_args": [
+    "-enable-kvm",
+    "-cpu",
+    "qemu64",
+    "-smp",
+    "2",
+    "-m",
+    "1024",
+    "-nographic",
+    "-serial",
+    "stdio",
+    "-drive",
+    "file=DISK_IMAGE,format=raw,if=virtio",
+    "-netdev",
+    "user,id=net0",
+    "-device",
+    "rtl8139,netdev=net0",
+    "-usb",
+    "-device",
+    "usb-tablet",
+    "-device",
+    "usb-mouse"
+  ]
+}

@@ -1,0 +1,67 @@
+{
+  "machine_id": "0efcb26eff82",
+  "profile": "desktop",
+  "cpu": {
+    "model": "Haswell",
+    "cores": 4
+  },
+  "memory_mb": 4096,
+  "storage": {
+    "type": "ide-hd",
+    "size_gb": 1,
+    "bus": "ide",
+    "model": "QEMU HARDDISK"
+  },
+  "network": {
+    "type": "rtl8139",
+    "model": "rtl8139",
+    "speed": "100"
+  },
+  "usb_controller": "qemu-xhci",
+  "usb_devices": [
+    {
+      "type": "usb-mouse",
+      "name": "QEMU USB Mouse"
+    },
+    {
+      "type": "usb-kbd",
+      "name": "QEMU USB Keyboard"
+    }
+  ],
+  "gpu": {
+    "type": "VGA",
+    "model": "qxl",
+    "vram_mb": 16
+  },
+  "sound": {
+    "type": "AC97",
+    "model": "ac97"
+  },
+  "qemu_args": [
+    "-cpu",
+    "Haswell",
+    "-smp",
+    "4",
+    "-m",
+    "4096",
+    "-nographic",
+    "-serial",
+    "stdio",
+    "-drive",
+    "file=DISK_IMAGE,format=raw,if=ide,media=disk",
+    "-netdev",
+    "user,id=net0",
+    "-device",
+    "rtl8139,netdev=net0",
+    "-device",
+    "qemu-xhci",
+    "-device",
+    "usb-mouse",
+    "-device",
+    "usb-kbd",
+    "-vga",
+    "qxl",
+    "-device",
+    "ac97"
+  ]
+}

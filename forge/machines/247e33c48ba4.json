@@ -1,0 +1,42 @@
+{
+  "machine_id": "247e33c48ba4",
+  "profile": "server",
+  "cpu": {
+    "model": "Nehalem",
+    "cores": 4
+  },
+  "memory_mb": 131072,
+  "storage": {
+    "type": "virtio-blk",
+    "size_gb": 1,
+    "bus": "virtio"
+  },
+  "network": {
+    "type": "virtio-net-pci",
+    "model": "virtio",
+    "speed": "10000"
+  },
+  "usb_controller": null,
+  "usb_devices": [],
+  "gpu": null,
+  "sound": null,
+  "qemu_args": [
+    "-cpu",
+    "Nehalem",
+    "-smp",
+    "4",
+    "-m",
+    "131072",
+    "-nographic",
+    "-serial",
+    "stdio",
+    "-drive",
+    "file=DISK_IMAGE,format=raw,if=virtio",
+    "-netdev",
+    "user,id=net0",
+    "-device",
+    "virtio-net-pci,netdev=net0",
+    "-vga",
+    "none"
+  ]
+}

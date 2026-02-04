@@ -1,0 +1,72 @@
+{
+  "machine_id": "0264906df1c6",
+  "profile": "workstation",
+  "cpu": {
+    "model": "qemu64",
+    "cores": 8
+  },
+  "memory_mb": 32768,
+  "storage": {
+    "type": "virtio-blk",
+    "size_gb": 1,
+    "bus": "virtio"
+  },
+  "network": {
+    "type": "e1000",
+    "model": "e1000",
+    "speed": "1000"
+  },
+  "usb_controller": "usb-ehci",
+  "usb_devices": [
+    {
+      "type": "usb-tablet",
+      "name": "QEMU USB Tablet"
+    },
+    {
+      "type": "usb-mouse",
+      "name": "QEMU USB Mouse"
+    },
+    {
+      "type": "usb-kbd",
+      "name": "QEMU USB Keyboard"
+    }
+  ],
+  "gpu": {
+    "type": "VGA",
+    "model": "vmware-svga",
+    "vram_mb": 16
+  },
+  "sound": {
+    "type": "SB16",
+    "model": "sb16"
+  },
+  "qemu_args": [
+    "-cpu",
+    "qemu64",
+    "-smp",
+    "8",
+    "-m",
+    "32768",
+    "-nographic",
+    "-serial",
+    "stdio",
+    "-drive",
+    "file=DISK_IMAGE,format=raw,if=virtio",
+    "-netdev",
+    "user,id=net0",
+    "-device",
+    "e1000,netdev=net0",
+    "-device",
+    "usb-ehci",
+    "-device",
+    "usb-tablet",
+    "-device",
+    "usb-mouse",
+    "-device",
+    "usb-kbd",
+    "-vga",
+    "vmware-svga",
+    "-device",
+    "sb16"
+  ]
+}

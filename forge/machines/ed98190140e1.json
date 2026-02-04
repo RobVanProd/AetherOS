@@ -1,0 +1,39 @@
+{
+  "machine_id": "ed98190140e1",
+  "profile": "minimal",
+  "cpu": {
+    "model": "qemu64",
+    "cores": 1
+  },
+  "memory_mb": 256,
+  "storage": {
+    "type": "nvme",
+    "size_gb": 1,
+    "bus": "pcie",
+    "model": "QEMU NVMe"
+  },
+  "network": null,
+  "usb_controller": null,
+  "usb_devices": [],
+  "gpu": null,
+  "sound": null,
+  "qemu_args": [
+    "-cpu",
+    "qemu64",
+    "-smp",
+    "1",
+    "-m",
+    "256",
+    "-nographic",
+    "-serial",
+    "stdio",
+    "-drive",
+    "file=DISK_IMAGE,format=raw,if=none,id=nvme0",
+    "-device",
+    "nvme,serial=deadbeef,drive=nvme0",
+    "-nic",
+    "none",
+    "-vga",
+    "none"
+  ]
+}

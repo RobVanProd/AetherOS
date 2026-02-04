@@ -1,0 +1,58 @@
+{
+  "machine_id": "16161f3f04b8",
+  "profile": "desktop",
+  "cpu": {
+    "model": "Nehalem",
+    "cores": 4
+  },
+  "memory_mb": 1024,
+  "storage": {
+    "type": "ide-hd",
+    "size_gb": 1,
+    "bus": "ide",
+    "model": "QEMU HARDDISK"
+  },
+  "network": {
+    "type": "e1000",
+    "model": "e1000",
+    "speed": "1000"
+  },
+  "usb_controller": "qemu-xhci",
+  "usb_devices": [
+    {
+      "type": "usb-mouse",
+      "name": "QEMU USB Mouse"
+    },
+    {
+      "type": "usb-tablet",
+      "name": "QEMU USB Tablet"
+    }
+  ],
+  "gpu": null,
+  "sound": null,
+  "qemu_args": [
+    "-cpu",
+    "Nehalem",
+    "-smp",
+    "4",
+    "-m",
+    "1024",
+    "-nographic",
+    "-serial",
+    "stdio",
+    "-drive",
+    "file=DISK_IMAGE,format=raw,if=ide,media=disk",
+    "-netdev",
+    "user,id=net0",
+    "-device",
+    "e1000,netdev=net0",
+    "-device",
+    "qemu-xhci",
+    "-device",
+    "usb-mouse",
+    "-device",
+    "usb-tablet",
+    "-vga",
+    "none"
+  ]
+}

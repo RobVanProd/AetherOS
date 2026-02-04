@@ -1,0 +1,67 @@
+{
+  "machine_id": "6a4e28718fc2",
+  "profile": "desktop",
+  "cpu": {
+    "model": "Nehalem",
+    "cores": 4
+  },
+  "memory_mb": 3072,
+  "storage": {
+    "type": "virtio-blk",
+    "size_gb": 1,
+    "bus": "virtio"
+  },
+  "network": {
+    "type": "rtl8139",
+    "model": "rtl8139",
+    "speed": "100"
+  },
+  "usb_controller": "piix3-usb-uhci",
+  "usb_devices": [
+    {
+      "type": "usb-kbd",
+      "name": "QEMU USB Keyboard"
+    },
+    {
+      "type": "usb-mouse",
+      "name": "QEMU USB Mouse"
+    },
+    {
+      "type": "usb-tablet",
+      "name": "QEMU USB Tablet"
+    }
+  ],
+  "gpu": {
+    "type": "VGA",
+    "model": "vmware-svga",
+    "vram_mb": 16
+  },
+  "sound": null,
+  "qemu_args": [
+    "-cpu",
+    "Nehalem",
+    "-smp",
+    "4",
+    "-m",
+    "3072",
+    "-nographic",
+    "-serial",
+    "stdio",
+    "-drive",
+    "file=DISK_IMAGE,format=raw,if=virtio",
+    "-netdev",
+    "user,id=net0",
+    "-device",
+    "rtl8139,netdev=net0",
+    "-device",
+    "piix3-usb-uhci",
+    "-device",
+    "usb-kbd",
+    "-device",
+    "usb-mouse",
+    "-device",
+    "usb-tablet",
+    "-vga",
+    "vmware-svga"
+  ]
+}

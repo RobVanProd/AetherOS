@@ -1,0 +1,39 @@
+{
+  "machine_id": "ffd6ef506101",
+  "profile": "minimal",
+  "cpu": {
+    "model": "qemu64",
+    "cores": 1
+  },
+  "memory_mb": 256,
+  "storage": {
+    "type": "ide-hd",
+    "size_gb": 1
+  },
+  "network": null,
+  "usb_devices": [
+    {
+      "type": "usb-mouse",
+      "name": "USB Mouse"
+    }
+  ],
+  "qemu_args": [
+    "-enable-kvm",
+    "-cpu",
+    "qemu64",
+    "-smp",
+    "1",
+    "-m",
+    "256",
+    "-nographic",
+    "-serial",
+    "stdio",
+    "-drive",
+    "file=DISK_IMAGE,format=raw,if=ide",
+    "-nic",
+    "none",
+    "-usb",
+    "-device",
+    "usb-mouse"
+  ]
+}

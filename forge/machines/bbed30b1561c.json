@@ -1,0 +1,73 @@
+{
+  "machine_id": "bbed30b1561c",
+  "profile": "desktop",
+  "cpu": {
+    "model": "qemu64",
+    "cores": 8
+  },
+  "memory_mb": 1536,
+  "storage": {
+    "type": "scsi-hd",
+    "size_gb": 1,
+    "bus": "scsi",
+    "model": "QEMU SCSI"
+  },
+  "network": {
+    "type": "e1000",
+    "model": "e1000",
+    "speed": "1000"
+  },
+  "usb_controller": "qemu-xhci",
+  "usb_devices": [
+    {
+      "type": "usb-kbd",
+      "name": "QEMU USB Keyboard"
+    },
+    {
+      "type": "usb-mouse",
+      "name": "QEMU USB Mouse"
+    },
+    {
+      "type": "usb-tablet",
+      "name": "QEMU USB Tablet"
+    }
+  ],
+  "gpu": null,
+  "sound": {
+    "type": "Intel HDA",
+    "model": "intel-hda"
+  },
+  "qemu_args": [
+    "-cpu",
+    "qemu64",
+    "-smp",
+    "8",
+    "-m",
+    "1536",
+    "-nographic",
+    "-serial",
+    "stdio",
+    "-device",
+    "virtio-scsi-pci,id=scsi0",
+    "-drive",
+    "file=DISK_IMAGE,format=raw,if=none,id=hd0",
+    "-device",
+    "scsi-hd,drive=hd0,bus=scsi0.0",
+    "-netdev",
+    "user,id=net0",
+    "-device",
+    "e1000,netdev=net0",
+    "-device",
+    "qemu-xhci",
+    "-device",
+    "usb-kbd",
+    "-device",
+    "usb-mouse",
+    "-device",
+    "usb-tablet",
+    "-vga",
+    "none",
+    "-device",
+    "intel-hda"
+  ]
+}

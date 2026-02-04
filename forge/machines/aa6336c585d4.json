@@ -1,0 +1,51 @@
+{
+  "machine_id": "aa6336c585d4",
+  "profile": "desktop",
+  "cpu": {
+    "model": "Skylake-Client",
+    "cores": 4
+  },
+  "memory_mb": 4096,
+  "storage": {
+    "type": "virtio-blk",
+    "size_gb": 1,
+    "bus": "virtio"
+  },
+  "network": {
+    "type": "e1000e",
+    "model": "e1000e",
+    "speed": "1000"
+  },
+  "usb_controller": null,
+  "usb_devices": [],
+  "gpu": {
+    "type": "VGA",
+    "model": "vmware-svga",
+    "vram_mb": 16
+  },
+  "sound": {
+    "type": "ES1370",
+    "model": "es1370"
+  },
+  "qemu_args": [
+    "-cpu",
+    "Skylake-Client",
+    "-smp",
+    "4",
+    "-m",
+    "4096",
+    "-nographic",
+    "-serial",
+    "stdio",
+    "-drive",
+    "file=DISK_IMAGE,format=raw,if=virtio",
+    "-netdev",
+    "user,id=net0",
+    "-device",
+    "e1000e,netdev=net0",
+    "-vga",
+    "vmware-svga",
+    "-device",
+    "es1370"
+  ]
+}

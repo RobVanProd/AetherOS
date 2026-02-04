@@ -1,0 +1,73 @@
+{
+  "machine_id": "4b17f6c4db18",
+  "profile": "desktop",
+  "cpu": {
+    "model": "IvyBridge",
+    "cores": 4
+  },
+  "memory_mb": 2048,
+  "storage": {
+    "type": "scsi-hd",
+    "size_gb": 1,
+    "bus": "scsi",
+    "model": "QEMU SCSI"
+  },
+  "network": {
+    "type": "ne2k_pci",
+    "model": "ne2k_pci",
+    "speed": "10"
+  },
+  "usb_controller": "piix3-usb-uhci",
+  "usb_devices": [
+    {
+      "type": "usb-kbd",
+      "name": "QEMU USB Keyboard"
+    },
+    {
+      "type": "usb-tablet",
+      "name": "QEMU USB Tablet"
+    },
+    {
+      "type": "usb-mouse",
+      "name": "QEMU USB Mouse"
+    }
+  ],
+  "gpu": null,
+  "sound": {
+    "type": "Intel HDA",
+    "model": "intel-hda"
+  },
+  "qemu_args": [
+    "-cpu",
+    "IvyBridge",
+    "-smp",
+    "4",
+    "-m",
+    "2048",
+    "-nographic",
+    "-serial",
+    "stdio",
+    "-device",
+    "virtio-scsi-pci,id=scsi0",
+    "-drive",
+    "file=DISK_IMAGE,format=raw,if=none,id=hd0",
+    "-device",
+    "scsi-hd,drive=hd0,bus=scsi0.0",
+    "-netdev",
+    "user,id=net0",
+    "-device",
+    "ne2k_pci,netdev=net0",
+    "-device",
+    "piix3-usb-uhci",
+    "-device",
+    "usb-kbd",
+    "-device",
+    "usb-tablet",
+    "-device",
+    "usb-mouse",
+    "-vga",
+    "none",
+    "-device",
+    "intel-hda"
+  ]
+}

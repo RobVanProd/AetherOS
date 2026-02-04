@@ -1,0 +1,65 @@
+{
+  "machine_id": "c9692c4dee45",
+  "profile": "desktop",
+  "cpu": {
+    "model": "Haswell",
+    "cores": 4
+  },
+  "memory_mb": 4096,
+  "storage": {
+    "type": "nvme",
+    "size_gb": 1,
+    "bus": "pcie",
+    "model": "QEMU NVMe"
+  },
+  "network": {
+    "type": "virtio-net-pci",
+    "model": "virtio",
+    "speed": "10000"
+  },
+  "usb_controller": "usb-ehci",
+  "usb_devices": [
+    {
+      "type": "usb-mouse",
+      "name": "QEMU USB Mouse"
+    },
+    {
+      "type": "usb-kbd",
+      "name": "QEMU USB Keyboard"
+    }
+  ],
+  "gpu": null,
+  "sound": {
+    "type": "Intel HDA",
+    "model": "intel-hda"
+  },
+  "qemu_args": [
+    "-cpu",
+    "Haswell",
+    "-smp",
+    "4",
+    "-m",
+    "4096",
+    "-nographic",
+    "-serial",
+    "stdio",
+    "-drive",
+    "file=DISK_IMAGE,format=raw,if=none,id=nvme0",
+    "-device",
+    "nvme,serial=deadbeef,drive=nvme0",
+    "-netdev",
+    "user,id=net0",
+    "-device",
+    "virtio-net-pci,netdev=net0",
+    "-device",
+    "usb-ehci",
+    "-device",
+    "usb-mouse",
+    "-device",
+    "usb-kbd",
+    "-vga",
+    "none",
+    "-device",
+    "intel-hda"
+  ]
+}

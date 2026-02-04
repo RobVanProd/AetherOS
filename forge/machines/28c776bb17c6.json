@@ -1,0 +1,44 @@
+{
+  "machine_id": "28c776bb17c6",
+  "profile": "server",
+  "cpu": {
+    "model": "Broadwell",
+    "cores": 8
+  },
+  "memory_mb": 4096,
+  "storage": {
+    "type": "virtio-blk",
+    "size_gb": 1,
+    "bus": "virtio"
+  },
+  "network": {
+    "type": "pcnet",
+    "model": "pcnet",
+    "speed": "10"
+  },
+  "usb_controller": "piix3-usb-uhci",
+  "usb_devices": [],
+  "gpu": null,
+  "sound": null,
+  "qemu_args": [
+    "-cpu",
+    "Broadwell",
+    "-smp",
+    "8",
+    "-m",
+    "4096",
+    "-nographic",
+    "-serial",
+    "stdio",
+    "-drive",
+    "file=DISK_IMAGE,format=raw,if=virtio",
+    "-netdev",
+    "user,id=net0",
+    "-device",
+    "pcnet,netdev=net0",
+    "-device",
+    "piix3-usb-uhci",
+    "-vga",
+    "none"
+  ]
+}

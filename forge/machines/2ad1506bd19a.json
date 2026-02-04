@@ -1,0 +1,67 @@
+{
+  "machine_id": "2ad1506bd19a",
+  "profile": "desktop",
+  "cpu": {
+    "model": "IvyBridge",
+    "cores": 4
+  },
+  "memory_mb": 3072,
+  "storage": {
+    "type": "ide-cd",
+    "size_gb": 0,
+    "bus": "ide",
+    "model": "QEMU DVD-ROM"
+  },
+  "network": {
+    "type": "pcnet",
+    "model": "pcnet",
+    "speed": "10"
+  },
+  "usb_controller": "usb-ehci",
+  "usb_devices": [
+    {
+      "type": "usb-kbd",
+      "name": "QEMU USB Keyboard"
+    },
+    {
+      "type": "usb-tablet",
+      "name": "QEMU USB Tablet"
+    }
+  ],
+  "gpu": {
+    "type": "VGA",
+    "model": "qxl",
+    "vram_mb": 16
+  },
+  "sound": {
+    "type": "AC97",
+    "model": "ac97"
+  },
+  "qemu_args": [
+    "-cpu",
+    "IvyBridge",
+    "-smp",
+    "4",
+    "-m",
+    "3072",
+    "-nographic",
+    "-serial",
+    "stdio",
+    "-drive",
+    "file=DISK_IMAGE,format=raw,if=ide,media=cdrom",
+    "-netdev",
+    "user,id=net0",
+    "-device",
+    "pcnet,netdev=net0",
+    "-device",
+    "usb-ehci",
+    "-device",
+    "usb-kbd",
+    "-device",
+    "usb-tablet",
+    "-vga",
+    "qxl",
+    "-device",
+    "ac97"
+  ]
+}

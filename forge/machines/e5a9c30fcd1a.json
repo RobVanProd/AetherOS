@@ -1,0 +1,45 @@
+{
+  "machine_id": "e5a9c30fcd1a",
+  "profile": "server",
+  "cpu": {
+    "model": "qemu64",
+    "cores": 16
+  },
+  "memory_mb": 32768,
+  "storage": {
+    "type": "ide-hd",
+    "size_gb": 1,
+    "bus": "ide",
+    "model": "QEMU HARDDISK"
+  },
+  "network": {
+    "type": "e1000",
+    "model": "e1000",
+    "speed": "1000"
+  },
+  "usb_controller": "qemu-xhci",
+  "usb_devices": [],
+  "gpu": null,
+  "sound": null,
+  "qemu_args": [
+    "-cpu",
+    "qemu64",
+    "-smp",
+    "16",
+    "-m",
+    "32768",
+    "-nographic",
+    "-serial",
+    "stdio",
+    "-drive",
+    "file=DISK_IMAGE,format=raw,if=ide,media=disk",
+    "-netdev",
+    "user,id=net0",
+    "-device",
+    "e1000,netdev=net0",
+    "-device",
+    "qemu-xhci",
+    "-vga",
+    "none"
+  ]
+}

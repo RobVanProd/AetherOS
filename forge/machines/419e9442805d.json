@@ -1,0 +1,69 @@
+{
+  "machine_id": "419e9442805d",
+  "profile": "desktop",
+  "cpu": {
+    "model": "Broadwell",
+    "cores": 8
+  },
+  "memory_mb": 1536,
+  "storage": {
+    "type": "nvme",
+    "size_gb": 1,
+    "bus": "pcie",
+    "model": "QEMU NVMe"
+  },
+  "network": {
+    "type": "virtio-net-pci",
+    "model": "virtio",
+    "speed": "10000"
+  },
+  "usb_controller": "usb-ehci",
+  "usb_devices": [
+    {
+      "type": "usb-mouse",
+      "name": "QEMU USB Mouse"
+    },
+    {
+      "type": "usb-kbd",
+      "name": "QEMU USB Keyboard"
+    }
+  ],
+  "gpu": {
+    "type": "VGA",
+    "model": "std",
+    "vram_mb": 16
+  },
+  "sound": {
+    "type": "SB16",
+    "model": "sb16"
+  },
+  "qemu_args": [
+    "-cpu",
+    "Broadwell",
+    "-smp",
+    "8",
+    "-m",
+    "1536",
+    "-nographic",
+    "-serial",
+    "stdio",
+    "-drive",
+    "file=DISK_IMAGE,format=raw,if=none,id=nvme0",
+    "-device",
+    "nvme,serial=deadbeef,drive=nvme0",
+    "-netdev",
+    "user,id=net0",
+    "-device",
+    "virtio-net-pci,netdev=net0",
+    "-device",
+    "usb-ehci",
+    "-device",
+    "usb-mouse",
+    "-device",
+    "usb-kbd",
+    "-vga",
+    "std",
+    "-device",
+    "sb16"
+  ]
+}

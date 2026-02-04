@@ -1,0 +1,195 @@
+#!/bin/bash
+#
+# The Foundry
+# Compiles a minimal bootable Linux kernel for testing.
+#
+set -e
+
+KERNEL_SRC="/forge/kernel_src"
+BUILD_DIR="/forge/build"
+IMAGES_DIR="/forge/images"
+MACHINES_DIR="/forge/machines"
+
+echo "The Foundry: Building bootable kernel"
+
+# Create directories
+mkdir -p "$BUILD_DIR" "$IMAGES_DIR"
+
+cd "$KERNEL_SRC"
+
+# Use a minimal config optimized for QEMU
+echo "Generating minimal kernel config..."
+
+# Start with a minimal config
+make O="$BUILD_DIR" allnoconfig
+
+# Enable required options via script
+cat >> "$BUILD_DIR/.config" << 'EOF'
+# Core
+CONFIG_64BIT=y
+CONFIG_SMP=y
+CONFIG_PRINTK=y
+CONFIG_BUG=y
+CONFIG_FUTEX=y
+CONFIG_EPOLL=y
+CONFIG_SIGNALFD=y
+CONFIG_TIMERFD=y
+CONFIG_EVENTFD=y
+
+# TTY/Console (for serial output)
+CONFIG_TTY=y
+CONFIG_SERIAL_8250=y
+CONFIG_SERIAL_8250_CONSOLE=y
+CONFIG_CONSOLE_TRANSLATIONS=y
+CONFIG_VT=n
+
+# Block devices
+CONFIG_BLOCK=y
+CONFIG_BLK_DEV=y
+CONFIG_VIRTIO_BLK=y
+CONFIG_BLK_DEV_NVME=y
+CONFIG_ATA=y
+CONFIG_ATA_PIIX=y
+
+# File systems (minimal)
+CONFIG_EXT4_FS=y
+CONFIG_TMPFS=y
+CONFIG_PROC_FS=y
+CONFIG_SYSFS=y
+CONFIG_DEVTMPFS=y
+CONFIG_DEVTMPFS_MOUNT=y
+
+# Virtio (for QEMU)
+CONFIG_VIRTIO=y
+CONFIG_VIRTIO_PCI=y
+CONFIG_VIRTIO_MMIO=y
+CONFIG_VIRTIO_CONSOLE=y
+CONFIG_HW_RANDOM_VIRTIO=y
+
+# PCI
+CONFIG_PCI=y
+
+# Initramfs (we'll embed a minimal one)
+CONFIG_BLK_DEV_INITRD=y
+CONFIG_RD_GZIP=y
+
+# Binary format support (needed to execute init scripts)
+CONFIG_BINFMT_ELF=y
+CONFIG_BINFMT_SCRIPT=y
+
+# Disable unnecessary stuff
+CONFIG_MODULES=n
+CONFIG_NETWORK_FILESYSTEMS=n
+CONFIG_SOUND=n
+CONFIG_USB=n
+CONFIG_WLAN=n
+CONFIG_WIRELESS=n
+EOF
+
+# Merge configs
+make O="$BUILD_DIR" olddefconfig
+
+echo "Compiling kernel (this takes a few minutes)..."
+make O="$BUILD_DIR" -j$(nproc) bzImage
+
+echo "Creating minimal initramfs..."
+INITRAMFS_DIR="$BUILD_DIR/initramfs"
+mkdir -p "$INITRAMFS_DIR"/{bin,sbin,etc,proc,sys,dev}
+
+# Create a minimal init script with version info
+cat > "$INITRAMFS_DIR/init" << 'INIT_EOF'
+#!/bin/sh
+
+# Aether OS v1.0.0 Init Script
+# Minimal initialization for bootable kernel validation
+
+# Mount essential filesystems
+mount -t proc none /proc
+mount -t sysfs none /sys
+mount -t devtmpfs none /dev
+
+# Print success message
+echo ""
+echo "=========================================="
+echo "  AETHER OS v1.0.0"
+echo "  Boot Successful"
+echo "=========================================="
+echo ""
+echo "Kernel: $(uname -r)"
+echo "Architecture: $(uname -m)"
+echo "Machine: $(cat /proc/cpuinfo | grep 'model name' | head -1 | cut -d: -f2 | sed 's/^[[:space:]]*//')"
+echo "CPU Cores: $(grep -c processor /proc/cpuinfo)"
+echo "Memory: $(grep MemTotal /proc/meminfo | awk '{print $2 " " $3}')"
+echo "Uptime: $(cat /proc/uptime | cut -d' ' -f1)s"
+echo ""
+echo "Components:"
+echo "  - Minimal Linux Kernel (custom config)"
+echo "  - BusyBox $(busybox | head -1 | cut -d' ' -f2)"
+echo "  - Init System: Minimal Shell Script"
+echo ""
+
+# Signal success via console
+echo "BOOT_SUCCESS" > /dev/console
+
+# System validation complete
+echo "=========================================="
+echo "  System validation complete"
+echo "  All essential services initialized"
+echo "=========================================="
+echo ""
+echo "Shutting down in 5 seconds..."
+sleep 5
+poweroff -f
+INIT_EOF
+chmod +x "$INITRAMFS_DIR/init"
+
+# We need busybox for basic commands - download static binary
+echo "Fetching busybox..."
+wget -q https://busybox.net/downloads/binaries/1.35.0-x86_64-linux-musl/busybox -O "$INITRAMFS_DIR/bin/busybox"
+chmod +x "$INITRAMFS_DIR/bin/busybox"
+
+# Create symlinks for essential commands
+cd "$INITRAMFS_DIR/bin"
+for cmd in sh mount umount poweroff sleep cat grep cut head uname; do
+    ln -sf busybox $cmd
+done
+cd "$KERNEL_SRC"
+
+# Pack initramfs
+echo "Packing initramfs..."
+cd "$INITRAMFS_DIR"
+find . -print0 | cpio --null -ov --format=newc 2>/dev/null | gzip -9 > "$BUILD_DIR/initramfs.cpio.gz"
+cd "$KERNEL_SRC"
+
+# Create bootable disk image
+echo "Creating bootable image..."
+KERNEL="$BUILD_DIR/arch/x86/boot/bzImage"
+INITRD="$BUILD_DIR/initramfs.cpio.gz"
+IMAGE="$IMAGES_DIR/aether-prototype.img"
+
+# Create a small disk image with kernel + initrd
+# We'll use a simple raw image that QEMU can boot directly
+cp "$KERNEL" "$IMAGES_DIR/vmlinuz"
+cp "$INITRD" "$IMAGES_DIR/initramfs.cpio.gz"
+
+# Create a marker file with build info
+cat > "$IMAGES_DIR/build_info.json" << EOF
+{
+    "aether_version": "1.0.0",
+    "build_time": "$(date -Iseconds)",
+    "kernel_version": "$(make O="$BUILD_DIR" -s kernelversion)",
+    "kernel_path": "vmlinuz",
+    "initrd_path": "initramfs.cpio.gz",
+    "architecture": "x86_64",
+    "build_type": "release",
+    "status": "ready"
+}
+EOF
+
+echo ""
+echo "Build complete!"
+echo "  Kernel: $IMAGES_DIR/vmlinuz"
+echo "  Initrd: $IMAGES_DIR/initramfs.cpio.gz"
+echo ""
+echo "To boot manually:"
+echo "  qemu-system-x86_64 -kernel $IMAGES_DIR/vmlinuz -initrd $IMAGES_DIR/initramfs.cpio.gz -nographic -append 'console=ttyS0'"
