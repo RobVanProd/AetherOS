@@ -1,0 +1,28 @@
+name: Forge smoke (cargo test --locked)
+
+on:
+  pull_request:
+  push:
+    branches: ["main"]
+
+jobs:
+  forge-smoke:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: forge
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Rust cache
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: |
+            forge
+
+      - name: cargo test (locked)
+        run: cargo test --locked

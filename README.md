@@ -31,6 +31,18 @@ Right now the build harness targets legacy/MyOS while we migrate modules.
 ./tools/run_qemu.sh
 ```
 
+### Forge smoke test (Rust)
+To run the lightweight Forge CI/smoke check locally:
+
+```bash
+# from repo root
+make forge-test
+
+# (equivalent)
+./tools/forge_smoke.sh
+# or: cd forge && cargo test --locked
+```
+
 Toolchain notes:
 - `docs/build_toolchain.md`
 
