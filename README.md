@@ -32,7 +32,7 @@ Right now the build harness targets legacy/MyOS while we migrate modules.
 ```
 
 ### Forge smoke test (Rust)
-To run the lightweight Forge CI/smoke check locally:
+To run the lightweight Forge CI/smoke check locally (requires the Rust toolchain / `cargo`; see `docs/build_toolchain.md`):
 
 ```bash
 # from repo root
