@@ -21,12 +21,38 @@ fn write_http_json(mut stream: UnixStream, status: &str, body: &str) -> anyhow::
     Ok(())
 }
 
+fn parse_body(req: &str) -> &str {
+    req.split("\r\n\r\n").nth(1).unwrap_or("")
+}
+
+fn append_audit_log(event: &str) {
+    let log_dir = std::env::var("AETHER_LOG_DIR")
+        .unwrap_or_else(|_| "/tmp/aether_logs".to_string());
+
+    let _ = std::fs::create_dir_all(&log_dir);
+    let log_path = format!("{}/audit.jsonl", log_dir);
+
+    let timestamp = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .unwrap()
+        .as_secs();
+
+    let entry = format!("{{\"ts\":{},\"event\":{}}}\n", timestamp, event);
+
+    if let Ok(mut f) = std::fs::OpenOptions::new()
+        .create(true)
+        .append(true)
+        .open(&log_path)
+    {
+        let _ = f.write_all(entry.as_bytes());
+    }
+}
+
 fn handle_conn(mut stream: UnixStream) -> anyhow::Result<()> {
-    let mut buf = [0u8; 8192];
+    let mut buf = [0u8; 16384];
     let n = stream.read(&mut buf)?;
     let req = String::from_utf8_lossy(&buf[..n]);
 
-    // Very small HTTP parser: only needs method + path for v0 demo.
     let mut lines = req.lines();
     let first = lines.next().unwrap_or("");
     let mut parts = first.split_whitespace();
@@ -42,7 +68,22 @@ fn handle_conn(mut stream: UnixStream) -> anyhow::Result<()> {
         return write_http_json(stream, "200 OK", &body);
     }
 
-    // default
+    // Audit logging endpoint
+    if method == "POST" && path == "/v0/audit" {
+        let body_str = parse_body(&req);
+        append_audit_log(body_str);
+        let resp = "{\"ok\":true,\"logged\":true}";
+        return write_http_json(stream, "200 OK", resp);
+    }
+
+    // Policy check endpoint (v0: always allow, but log)
+    if method == "POST" && path == "/v0/policy/check" {
+        let body_str = parse_body(&req);
+        append_audit_log(&format!("{{\"type\":\"policy_check\",\"request\":{}}}", body_str));
+        let resp = "{\"ok\":true,\"allowed\":true,\"reason\":\"v0_allow_all\"}";
+        return write_http_json(stream, "200 OK", resp);
+    }
+
     let body = "{\"ok\":false,\"error\":\"not_found\"}";
     write_http_json(stream, "404 Not Found", body)
 }
@@ -56,6 +97,8 @@ fn main() -> anyhow::Result<()> {
 
     let listener = UnixListener::bind(&socket_path)?;
     eprintln!("aetherd listening on unix://{}", socket_path);
+    eprintln!("  audit log: {}/audit.jsonl",
+        std::env::var("AETHER_LOG_DIR").unwrap_or_else(|_| "/tmp/aether_logs".to_string()));
 
     for conn in listener.incoming() {
         match conn {

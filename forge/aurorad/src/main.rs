@@ -14,13 +14,14 @@ struct HealthResponse {
 #[derive(Deserialize)]
 struct JobRequest {
     job_type: Option<String>,
+    #[serde(flatten)]
+    params: serde_json::Value,
 }
 
 #[derive(Serialize)]
 struct JobResponse {
     ok: bool,
     job_id: String,
-    mocked: bool,
     job_type: String,
     result: serde_json::Value,
 }
@@ -36,8 +37,65 @@ fn write_http_json(mut stream: UnixStream, status: &str, body: &str) -> anyhow::
 }
 
 fn parse_body(req: &str) -> &str {
-    // naive split; fine for v0 demo.
     req.split("\r\n\r\n").nth(1).unwrap_or("")
+}
+
+fn now_secs() -> u64 {
+    std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .unwrap()
+        .as_secs()
+}
+
+/// Forward an HTTP request to cfcd via Unix socket.
+fn forward_to_cfcd(method: &str, path: &str, body: &str) -> anyhow::Result<String> {
+    let cfcd_socket =
+        std::env::var("CFCD_SOCKET").unwrap_or_else(|_| "/tmp/cfcd.sock".to_string());
+
+    let mut stream = UnixStream::connect(&cfcd_socket)?;
+
+    let request = if body.is_empty() {
+        format!("{method} {path} HTTP/1.1\r\nHost: localhost\r\n\r\n")
+    } else {
+        format!(
+            "{method} {path} HTTP/1.1\r\nHost: localhost\r\nContent-Type: application/json\r\nContent-Length: {}\r\n\r\n{body}",
+            body.len()
+        )
+    };
+
+    stream.write_all(request.as_bytes())?;
+
+    let mut response = String::new();
+    stream.read_to_string(&mut response)?;
+
+    // Extract body from HTTP response
+    if let Some(idx) = response.find("\r\n\r\n") {
+        Ok(response[idx + 4..].to_string())
+    } else {
+        Ok(response)
+    }
+}
+
+/// Route job types to cfcd endpoints.
+fn route_job_to_cfcd(job_type: &str, params: &serde_json::Value) -> anyhow::Result<String> {
+    let (method, path) = match job_type {
+        "predict_next_state" => ("POST", "/v0/predict"),
+        "encode_state" => ("POST", "/v0/encode_state"),
+        "introspect" => ("GET", "/v0/introspect"),
+        "trigger_learning" => ("POST", "/v0/update_weights"),
+        "enable_learning" => ("POST", "/v0/learning/enable"),
+        "disable_learning" => ("POST", "/v0/learning/disable"),
+        "save_weights" => ("POST", "/v0/weights/save"),
+        _ => ("POST", "/v0/predict"), // default
+    };
+
+    let body = if method == "GET" {
+        String::new()
+    } else {
+        serde_json::to_string(params)?
+    };
+
+    forward_to_cfcd(method, path, &body)
 }
 
 fn handle_conn(mut stream: UnixStream) -> anyhow::Result<()> {
@@ -60,30 +118,55 @@ fn handle_conn(mut stream: UnixStream) -> anyhow::Result<()> {
         return write_http_json(stream, "200 OK", &body);
     }
 
+    // Forward jobs to cfcd
     if method == "POST" && path == "/v0/jobs" {
         let body_str = parse_body(&req);
         let jr: JobRequest =
-            serde_json::from_str(body_str).unwrap_or(JobRequest { job_type: None });
+            serde_json::from_str(body_str).unwrap_or(JobRequest {
+                job_type: None,
+                params: serde_json::json!({}),
+            });
         let jt = jr
             .job_type
             .unwrap_or_else(|| "predict_next_state".to_string());
 
+        // Try forwarding to cfcd
+        let cfcd_result = route_job_to_cfcd(&jt, &jr.params);
+
+        let result_value = match cfcd_result {
+            Ok(resp_body) => {
+                serde_json::from_str(&resp_body).unwrap_or(serde_json::json!({"raw": resp_body}))
+            }
+            Err(e) => {
+                eprintln!("cfcd forward failed: {e:?} (is cfcd running?)");
+                serde_json::json!({"error": format!("cfcd unavailable: {e}"), "mocked": true})
+            }
+        };
+
         let resp = JobResponse {
             ok: true,
-            job_id: format!(
-                "job_{}",
-                std::time::SystemTime::now()
-                    .duration_since(std::time::UNIX_EPOCH)
-                    .unwrap()
-                    .as_secs()
-            ),
-            mocked: true,
-            job_type: jt.clone(),
-            result: serde_json::json!({"note": "mocked_result", "job_type": jt}),
+            job_id: format!("job_{}", now_secs()),
+            job_type: jt,
+            result: result_value,
         };
 
         let body = serde_json::to_string(&resp)?;
         return write_http_json(stream, "200 OK", &body);
+    }
+
+    // Proxy model endpoints directly to cfcd
+    if path.starts_with("/v0/model/") || path.starts_with("/v0/cfcd/") {
+        let cfcd_path = path.replacen("/v0/model/", "/v0/", 1)
+            .replacen("/v0/cfcd/", "/v0/", 1);
+        let body_str = parse_body(&req);
+
+        match forward_to_cfcd(method, &cfcd_path, body_str) {
+            Ok(resp_body) => return write_http_json(stream, "200 OK", &resp_body),
+            Err(e) => {
+                let err = serde_json::json!({"ok": false, "error": format!("cfcd: {e}")});
+                return write_http_json(stream, "502 Bad Gateway", &err.to_string());
+            }
+        }
     }
 
     let body = "{\"ok\":false,\"error\":\"not_found\"}";
@@ -99,6 +182,7 @@ fn main() -> anyhow::Result<()> {
 
     let listener = UnixListener::bind(&socket_path)?;
     eprintln!("aurorad listening on unix://{}", socket_path);
+    eprintln!("  cfcd forwarding enabled (CFCD_SOCKET env or /tmp/cfcd.sock)");
 
     for conn in listener.incoming() {
         match conn {
