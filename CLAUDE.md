@@ -10,6 +10,9 @@ AetherOS is "the first generative AI built-in OS" — a complete operating syste
 
 ## Structure
 - `forge/` - The Forge build system (Cartographer, Foundry, Crucible)
+  - `forge/aetherd/` - Audit/policy daemon (Rust, Unix socket)
+  - `forge/aurorad/` - Job routing daemon (Rust, Unix socket, forwards to cfcd)
+  - `forge/cfcd/` - CFC-JEPA model runtime daemon (Python, 37M-param world model)
 - `legacy/` - Legacy MyOS kernel (being absorbed into AetherOS)
 - `nebula/` - Nebula shell interface (Rust + wgpu) — in development
 - `tools/` - Development and QEMU harness tooling
@@ -28,3 +31,11 @@ AetherOS is "the first generative AI built-in OS" — a complete operating syste
 
 ## Aurora CFC Integration
 Aurora runs as a local daemon with gRPC/HTTP API. OS components consume predictions via a narrow, versioned API with resource limits.
+
+### Phase 6: Self-Modifying World Model (DONE)
+- **cfcd**: Loads trained CFC-JEPA checkpoint, serves inference at ~155ms on ROCm GPU
+- **Online learning**: Closed-loop observe → predict → compare → update weights
+- **OS telemetry**: 128-dim feature vector (CPU, memory, GPU, processes) → 1024-dim embedding
+- **Weight versioning**: Atomic saves, manifest tracking, auto-rollback on degradation
+- **Full stack**: aetherd (audit) → aurorad (routing) → cfcd (model runtime)
+- **Demos**: `forge/cfcd/demo_e2e.py` (standalone), `forge/cfcd/demo_full_stack.sh` (all daemons)
