@@ -1,0 +1,50 @@
+[package]
+name = "nebula"
+version = "0.1.0"
+edition = "2021"
+authors = ["Aeternum Labs"]
+description = "The Aether OS Interface Shell"
+
+[dependencies]
+# GPU rendering
+wgpu = "0.19"
+winit = "0.29"           # Window creation (for dev), we'll bypass for bare metal
+raw-window-handle = "0.6"
+
+# Math
+glam = "0.25"            # Vectors, matrices
+palette = "0.7"          # Color manipulation
+
+# Input
+evdev = "0.12"           # Linux input devices
+
+# Async / blocking
+pollster = "0.3"         # Block on async for wgpu
+
+# Utilities
+tracing = "0.1"
+tracing-subscriber = "0.3"
+anyhow = "1.0"
+thiserror = "1.0"
+
+# Serialization (for config, facets)
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+
+# Time and animation
+instant = "0.1"
+
+[target.'cfg(target_os = "linux")'.dependencies]
+# Direct DRM/KMS access (bare metal)
+drm = "0.11"
+drm-ffi = "0.7"
+gbm = "0.14"             # Generic Buffer Management
+
+[features]
+default = ["windowed"]
+windowed = []            # Use winit for development
+bare-metal = []          # Direct DRM/KMS for production
+
+[[bin]]
+name = "nebula"
+path = "src/main.rs"

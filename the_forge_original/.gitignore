@@ -1,0 +1,35 @@
+# Build artifacts
+build/
+images/
+results/
+
+# Cached binaries
+cache/busybox
+
+# Generated data
+machines/*.json
+data/driver_manifest.json
+
+# Keep directory structure
+!machines/.gitkeep
+!images/.gitkeep
+!results/.gitkeep
+!data/.gitkeep
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# Editor
+.vscode/
+.idea/
+*.swp
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Docker
+.docker/
