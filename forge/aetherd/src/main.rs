@@ -1,5 +1,6 @@
 use std::io::{Read, Write};
-use std::os::unix::net::{UnixListener, UnixStream};
+use std::net::TcpListener;
+use std::os::unix::net::UnixListener;
 use std::path::Path;
 
 use serde::Serialize;
@@ -11,7 +12,7 @@ struct HealthResponse {
     version: &'static str,
 }
 
-fn write_http_json(mut stream: UnixStream, status: &str, body: &str) -> anyhow::Result<()> {
+fn write_http_json(stream: &mut dyn Write, status: &str, body: &str) -> anyhow::Result<()> {
     let resp = format!(
         "HTTP/1.1 {status}\r\nContent-Type: application/json\r\nContent-Length: {}\r\n\r\n{}",
         body.len(),
@@ -48,7 +49,7 @@ fn append_audit_log(event: &str) {
     }
 }
 
-fn handle_conn(mut stream: UnixStream) -> anyhow::Result<()> {
+fn handle_conn(stream: &mut (impl Read + Write)) -> anyhow::Result<()> {
     let mut buf = [0u8; 16384];
     let n = stream.read(&mut buf)?;
     let req = String::from_utf8_lossy(&buf[..n]);
@@ -88,26 +89,71 @@ fn handle_conn(mut stream: UnixStream) -> anyhow::Result<()> {
     write_http_json(stream, "404 Not Found", body)
 }
 
-fn main() -> anyhow::Result<()> {
-    let socket_path =
-        std::env::var("AETHERD_SOCKET").unwrap_or_else(|_| "/tmp/aetherd.sock".to_string());
-    if Path::new(&socket_path).exists() {
-        std::fs::remove_file(&socket_path)?;
-    }
+enum Listener {
+    Unix(UnixListener),
+    Tcp(TcpListener),
+}
 
-    let listener = UnixListener::bind(&socket_path)?;
-    eprintln!("aetherd listening on unix://{}", socket_path);
+fn main() -> anyhow::Result<()> {
+    let tcp_port = std::env::var("AETHERD_TCP_PORT").ok()
+        .and_then(|p| p.parse::<u16>().ok());
+
+    let listener = if let Some(port) = tcp_port {
+        // TCP mode (forced or fallback)
+        let l = TcpListener::bind(format!("0.0.0.0:{}", port))?;
+        eprintln!("aetherd listening on tcp://0.0.0.0:{}", port);
+        Listener::Tcp(l)
+    } else {
+        // Try Unix socket first, fall back to TCP on ENOSYS
+        let socket_path =
+            std::env::var("AETHERD_SOCKET").unwrap_or_else(|_| "/tmp/aetherd.sock".to_string());
+        if Path::new(&socket_path).exists() {
+            std::fs::remove_file(&socket_path)?;
+        }
+
+        match UnixListener::bind(&socket_path) {
+            Ok(l) => {
+                eprintln!("aetherd listening on unix://{}", socket_path);
+                Listener::Unix(l)
+            }
+            Err(e) if e.raw_os_error() == Some(38) => {
+                // ENOSYS — kernel lacks AF_UNIX, fall back to TCP
+                let port = 9101u16;
+                eprintln!("aetherd: Unix sockets unavailable (ENOSYS), falling back to tcp://0.0.0.0:{}", port);
+                let l = TcpListener::bind(format!("0.0.0.0:{}", port))?;
+                Listener::Tcp(l)
+            }
+            Err(e) => return Err(e.into()),
+        }
+    };
+
     eprintln!("  audit log: {}/audit.jsonl",
         std::env::var("AETHER_LOG_DIR").unwrap_or_else(|_| "/tmp/aether_logs".to_string()));
 
-    for conn in listener.incoming() {
-        match conn {
-            Ok(stream) => {
-                if let Err(err) = handle_conn(stream) {
-                    eprintln!("aetherd error: {err:?}");
+    match listener {
+        Listener::Unix(l) => {
+            for conn in l.incoming() {
+                match conn {
+                    Ok(mut stream) => {
+                        if let Err(err) = handle_conn(&mut stream) {
+                            eprintln!("aetherd error: {err:?}");
+                        }
+                    }
+                    Err(err) => eprintln!("aetherd accept error: {err:?}"),
                 }
             }
-            Err(err) => eprintln!("aetherd accept error: {err:?}"),
+        }
+        Listener::Tcp(l) => {
+            for conn in l.incoming() {
+                match conn {
+                    Ok(mut stream) => {
+                        if let Err(err) = handle_conn(&mut stream) {
+                            eprintln!("aetherd error: {err:?}");
+                        }
+                    }
+                    Err(err) => eprintln!("aetherd accept error: {err:?}"),
+                }
+            }
         }
     }
 

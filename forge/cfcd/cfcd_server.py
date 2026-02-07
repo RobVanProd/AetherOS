@@ -296,23 +296,36 @@ class CFCDaemon:
             "versions": self.weight_manager.get_manifest()[-5:],
         }
 
-    # --- Unix Socket HTTP Server ---
+    # --- Unix Socket + TCP HTTP Server ---
 
-    def run(self):
-        """Start the Unix socket HTTP server."""
+    def run(self, tcp_port: int = 0):
+        """Start the HTTP server on Unix socket and optionally TCP."""
         sock_path = self.config.socket_path
+        servers = []
 
-        # Remove stale socket
+        # Unix socket
         if os.path.exists(sock_path):
             os.unlink(sock_path)
 
-        server = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
-        server.bind(sock_path)
-        server.listen(5)
+        unix_server = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+        unix_server.bind(sock_path)
+        unix_server.listen(5)
         os.chmod(sock_path, 0o666)
+        servers.append(unix_server)
 
         print(f"\ncfcd listening on {sock_path}")
         print(f"  Health: curl --unix-socket {sock_path} http://localhost/v0/health")
+
+        # Optional TCP listener (for QEMU guest bridge)
+        tcp_server = None
+        if tcp_port > 0:
+            tcp_server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            tcp_server.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+            tcp_server.bind(("0.0.0.0", tcp_port))
+            tcp_server.listen(5)
+            servers.append(tcp_server)
+            print(f"  TCP:  http://0.0.0.0:{tcp_port}/v0/health")
+
         print(f"  Predict: curl --unix-socket {sock_path} -X POST "
               f"-d '{{}}' http://localhost/v0/predict\n")
 
@@ -322,20 +335,25 @@ class CFCDaemon:
             self.learner.start_background(interval_sec)
             print(f"Online learning started (interval={interval_sec}s)")
 
+        import select
+
         try:
             while True:
-                conn, _ = server.accept()
-                try:
-                    self._handle_connection(conn)
-                except Exception as e:
-                    print(f"Connection error: {e}")
-                finally:
-                    conn.close()
+                readable, _, _ = select.select(servers, [], [], 1.0)
+                for srv in readable:
+                    conn, _ = srv.accept()
+                    try:
+                        self._handle_connection(conn)
+                    except Exception as e:
+                        print(f"Connection error: {e}")
+                    finally:
+                        conn.close()
         except KeyboardInterrupt:
             print("\nShutting down cfcd...")
         finally:
             self.learner.stop()
-            server.close()
+            for srv in servers:
+                srv.close()
             if os.path.exists(sock_path):
                 os.unlink(sock_path)
 
@@ -407,6 +425,8 @@ def main():
                         help="Bootstrap OS encoder before starting server")
     parser.add_argument("--bootstrap-seconds", type=int, default=60,
                         help="Seconds of telemetry to collect for bootstrap")
+    parser.add_argument("--tcp-port", type=int, default=0,
+                        help="Also listen on TCP port (for QEMU guest bridge)")
     args = parser.parse_args()
 
     config = CFCDConfig(
@@ -436,7 +456,7 @@ def main():
         result = bootstrap.train_encoder(telemetry)
         print(f"Bootstrap complete: acc={result.get('final_accuracy', 0)*100:.1f}%")
 
-    daemon.run()
+    daemon.run(tcp_port=args.tcp_port)
 
 
 if __name__ == "__main__":

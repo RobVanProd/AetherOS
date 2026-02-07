@@ -4,24 +4,37 @@
 AetherOS is "the first generative AI built-in OS" — a complete operating system with Aurora CFC world model integration, the Nebula shell interface, and The Forge build system.
 
 ## Quick Reference
+- **Boot**: `make boot` (build + QEMU)
+- **Boot with AI**: `make demo` (boot + cfcd on host)
+- **Build only**: `make build`
 - **Test Forge**: `make forge-test`
-- **QEMU boot**: See tools/ and docs/QUICKSTART
 - **Default branch**: `main`
 
 ## Structure
 - `forge/` - The Forge build system (Cartographer, Foundry, Crucible)
-  - `forge/aetherd/` - Audit/policy daemon (Rust, Unix socket)
-  - `forge/aurorad/` - Job routing daemon (Rust, Unix socket, forwards to cfcd)
+  - `forge/aetherd/` - Audit/policy daemon (Rust, TCP/Unix socket)
+  - `forge/aurorad/` - Job routing daemon (Rust, TCP/Unix, forwards to cfcd)
   - `forge/cfcd/` - CFC-JEPA model runtime daemon (Python, 37M-param world model)
-- `legacy/` - Legacy MyOS kernel (being absorbed into AetherOS)
-- `nebula/` - Nebula shell interface (Rust + wgpu) — in development
-- `tools/` - Development and QEMU harness tooling
+  - `forge/nebula-tui/` - Nebula TUI shell (Rust, ratatui, crossterm)
+- `aether_init/` - Init system (PID 1 shell script, v0.3)
+- `the_forge_original/` - Docker-based kernel build pipeline (Linux 6.6.70)
+- `tools/` - Build scripts (build_initramfs.sh, run_qemu.sh)
+- `legacy/` - Legacy MyOS kernel (archived)
 - `docs/` - Architecture docs, milestone checklists, integration specs
 
+## Boot Architecture
+```
+HOST (ROCm GPU)                  QEMU VM (AetherOS)
+  cfcd (PyTorch)                   PID 1: init script
+    ↕ TCP:9100                       ├── aetherd  (TCP:9101)
+                                     ├── aurorad  (TCP:9102 → cfcd:9100)
+                                     └── nebula-tui (Nebula shell)
+```
+
 ## Development Rules
-1. Test Forge changes with `make forge-test`
-2. Ensure cargo is on PATH for CI (cron-safe)
-3. Test in QEMU before bare-metal changes
+1. Build with `make build` before testing
+2. All Rust binaries cross-compile to x86_64-unknown-linux-musl (static)
+3. Test in QEMU with `make boot` before committing
 4. Follow the V0 milestone checklist
 
 ## Key Docs
@@ -29,13 +42,18 @@ AetherOS is "the first generative AI built-in OS" — a complete operating syste
 - `docs/AURORA_CFC_INTEGRATION_BOUNDARY.md` - Aurora integration spec
 - `MIGRATION.md` - MyOS migration notes
 
-## Aurora CFC Integration
-Aurora runs as a local daemon with gRPC/HTTP API. OS components consume predictions via a narrow, versioned API with resource limits.
+## Phase History
 
 ### Phase 6: Self-Modifying World Model (DONE)
-- **cfcd**: Loads trained CFC-JEPA checkpoint, serves inference at ~155ms on ROCm GPU
-- **Online learning**: Closed-loop observe → predict → compare → update weights
-- **OS telemetry**: 128-dim feature vector (CPU, memory, GPU, processes) → 1024-dim embedding
-- **Weight versioning**: Atomic saves, manifest tracking, auto-rollback on degradation
-- **Full stack**: aetherd (audit) → aurorad (routing) → cfcd (model runtime)
-- **Demos**: `forge/cfcd/demo_e2e.py` (standalone), `forge/cfcd/demo_full_stack.sh` (all daemons)
+- **cfcd**: CFC-JEPA checkpoint → inference at ~155ms on ROCm GPU
+- **Online learning**: observe → predict → compare → update weights
+- **Weight versioning**: Atomic saves, manifest tracking, auto-rollback
+- **Demos**: `forge/cfcd/demo_e2e.py`, `forge/cfcd/demo_full_stack.sh`
+
+### Phases 7-11: Bootable Prototype (DONE)
+- **Phase 7**: QEMU boot infrastructure (Makefile, initramfs, run_qemu.sh)
+- **Phase 8**: Static Rust daemons (aetherd/aurorad with TCP fallback)
+- **Phase 9**: Nebula TUI shell (ratatui — system dashboard, AI panel, omni-bar)
+- **Phase 10**: cfcd TCP bridge (host:9100 → guest aurorad)
+- **Phase 11**: End-to-end integration (`make boot` → Nebula shell)
+- **Kernel**: Rebuilt Linux 6.6.70 via Docker with full networking (CONFIG_NET/INET/UNIX)

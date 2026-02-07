@@ -1,4 +1,5 @@
 use std::io::{Read, Write};
+use std::net::{TcpListener, TcpStream};
 use std::os::unix::net::{UnixListener, UnixStream};
 use std::path::Path;
 
@@ -26,7 +27,7 @@ struct JobResponse {
     result: serde_json::Value,
 }
 
-fn write_http_json(mut stream: UnixStream, status: &str, body: &str) -> anyhow::Result<()> {
+fn write_http_json(stream: &mut dyn Write, status: &str, body: &str) -> anyhow::Result<()> {
     let resp = format!(
         "HTTP/1.1 {status}\r\nContent-Type: application/json\r\nContent-Length: {}\r\n\r\n{}",
         body.len(),
@@ -47,13 +48,8 @@ fn now_secs() -> u64 {
         .as_secs()
 }
 
-/// Forward an HTTP request to cfcd via Unix socket.
-fn forward_to_cfcd(method: &str, path: &str, body: &str) -> anyhow::Result<String> {
-    let cfcd_socket =
-        std::env::var("CFCD_SOCKET").unwrap_or_else(|_| "/tmp/cfcd.sock".to_string());
-
-    let mut stream = UnixStream::connect(&cfcd_socket)?;
-
+/// Send an HTTP request and read the response body.
+fn send_http_request(stream: &mut dyn Write, reader: &mut dyn Read, method: &str, path: &str, body: &str) -> anyhow::Result<String> {
     let request = if body.is_empty() {
         format!("{method} {path} HTTP/1.1\r\nHost: localhost\r\n\r\n")
     } else {
@@ -66,14 +62,30 @@ fn forward_to_cfcd(method: &str, path: &str, body: &str) -> anyhow::Result<Strin
     stream.write_all(request.as_bytes())?;
 
     let mut response = String::new();
-    stream.read_to_string(&mut response)?;
+    reader.read_to_string(&mut response)?;
 
-    // Extract body from HTTP response
     if let Some(idx) = response.find("\r\n\r\n") {
         Ok(response[idx + 4..].to_string())
     } else {
         Ok(response)
     }
+}
+
+/// Forward an HTTP request to cfcd via Unix socket or TCP.
+fn forward_to_cfcd(method: &str, path: &str, body: &str) -> anyhow::Result<String> {
+    // Check for TCP host (CFCD_HOST=host:port)
+    if let Ok(host) = std::env::var("CFCD_HOST") {
+        let mut stream = TcpStream::connect(&host)?;
+        let mut reader = stream.try_clone()?;
+        return send_http_request(&mut stream, &mut reader, method, path, body);
+    }
+
+    // Fall back to Unix socket
+    let cfcd_socket =
+        std::env::var("CFCD_SOCKET").unwrap_or_else(|_| "/tmp/cfcd.sock".to_string());
+    let mut stream = UnixStream::connect(&cfcd_socket)?;
+    let mut reader = stream.try_clone()?;
+    send_http_request(&mut stream, &mut reader, method, path, body)
 }
 
 /// Route job types to cfcd endpoints.
@@ -98,7 +110,7 @@ fn route_job_to_cfcd(job_type: &str, params: &serde_json::Value) -> anyhow::Resu
     forward_to_cfcd(method, path, &body)
 }
 
-fn handle_conn(mut stream: UnixStream) -> anyhow::Result<()> {
+fn handle_conn(stream: &mut (impl Read + Write)) -> anyhow::Result<()> {
     let mut buf = [0u8; 16384];
     let n = stream.read(&mut buf)?;
     let req = String::from_utf8_lossy(&buf[..n]);
@@ -173,25 +185,72 @@ fn handle_conn(mut stream: UnixStream) -> anyhow::Result<()> {
     write_http_json(stream, "404 Not Found", body)
 }
 
+enum Listener {
+    Unix(UnixListener),
+    Tcp(TcpListener),
+}
+
 fn main() -> anyhow::Result<()> {
-    let socket_path =
-        std::env::var("AURORAD_SOCKET").unwrap_or_else(|_| "/tmp/aurorad.sock".to_string());
-    if Path::new(&socket_path).exists() {
-        std::fs::remove_file(&socket_path)?;
+    let tcp_port = std::env::var("AURORAD_TCP_PORT").ok()
+        .and_then(|p| p.parse::<u16>().ok());
+
+    let listener = if let Some(port) = tcp_port {
+        let l = TcpListener::bind(format!("0.0.0.0:{}", port))?;
+        eprintln!("aurorad listening on tcp://0.0.0.0:{}", port);
+        Listener::Tcp(l)
+    } else {
+        let socket_path =
+            std::env::var("AURORAD_SOCKET").unwrap_or_else(|_| "/tmp/aurorad.sock".to_string());
+        if Path::new(&socket_path).exists() {
+            std::fs::remove_file(&socket_path)?;
+        }
+
+        match UnixListener::bind(&socket_path) {
+            Ok(l) => {
+                eprintln!("aurorad listening on unix://{}", socket_path);
+                Listener::Unix(l)
+            }
+            Err(e) if e.raw_os_error() == Some(38) => {
+                let port = 9102u16;
+                eprintln!("aurorad: Unix sockets unavailable (ENOSYS), falling back to tcp://0.0.0.0:{}", port);
+                let l = TcpListener::bind(format!("0.0.0.0:{}", port))?;
+                Listener::Tcp(l)
+            }
+            Err(e) => return Err(e.into()),
+        }
+    };
+
+    if let Ok(host) = std::env::var("CFCD_HOST") {
+        eprintln!("  cfcd forwarding via TCP: {}", host);
+    } else {
+        let sock = std::env::var("CFCD_SOCKET").unwrap_or_else(|_| "/tmp/cfcd.sock".to_string());
+        eprintln!("  cfcd forwarding via Unix: {}", sock);
     }
 
-    let listener = UnixListener::bind(&socket_path)?;
-    eprintln!("aurorad listening on unix://{}", socket_path);
-    eprintln!("  cfcd forwarding enabled (CFCD_SOCKET env or /tmp/cfcd.sock)");
-
-    for conn in listener.incoming() {
-        match conn {
-            Ok(stream) => {
-                if let Err(err) = handle_conn(stream) {
-                    eprintln!("aurorad error: {err:?}");
+    match listener {
+        Listener::Unix(l) => {
+            for conn in l.incoming() {
+                match conn {
+                    Ok(mut stream) => {
+                        if let Err(err) = handle_conn(&mut stream) {
+                            eprintln!("aurorad error: {err:?}");
+                        }
+                    }
+                    Err(err) => eprintln!("aurorad accept error: {err:?}"),
                 }
             }
-            Err(err) => eprintln!("aurorad accept error: {err:?}"),
+        }
+        Listener::Tcp(l) => {
+            for conn in l.incoming() {
+                match conn {
+                    Ok(mut stream) => {
+                        if let Err(err) = handle_conn(&mut stream) {
+                            eprintln!("aurorad error: {err:?}");
+                        }
+                    }
+                    Err(err) => eprintln!("aurorad accept error: {err:?}"),
+                }
+            }
         }
     }
 

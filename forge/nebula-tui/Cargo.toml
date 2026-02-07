@@ -1,0 +1,15 @@
+[package]
+name = "nebula-tui"
+version = "0.3.0"
+edition = "2021"
+description = "Nebula — AetherOS intent-driven TUI shell"
+
+[[bin]]
+name = "nebula-tui"
+path = "src/main.rs"
+
+[dependencies]
+ratatui = "0.29"
+crossterm = "0.28"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
