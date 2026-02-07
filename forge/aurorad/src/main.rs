@@ -88,6 +88,40 @@ fn forward_to_cfcd(method: &str, path: &str, body: &str) -> anyhow::Result<Strin
     send_http_request(&mut stream, &mut reader, method, path, body)
 }
 
+/// Forward a request to the brain server (Claude-powered NL processing).
+fn forward_to_brain(body: &str) -> anyhow::Result<String> {
+    let host = std::env::var("BRAIN_HOST").unwrap_or_else(|_| "10.0.2.2:9200".to_string());
+    let mut stream = TcpStream::connect(&host)?;
+    // Brain queries can take 30+ seconds (LLM latency)
+    stream.set_read_timeout(Some(std::time::Duration::from_secs(60)))?;
+    stream.set_write_timeout(Some(std::time::Duration::from_secs(5)))?;
+
+    let request = format!(
+        "POST /v0/brain HTTP/1.1\r\nHost: {}\r\nContent-Type: application/json\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{}",
+        host, body.len(), body
+    );
+    stream.write_all(request.as_bytes())?;
+
+    // Read full response (may be large)
+    let mut response = Vec::new();
+    let mut buf = [0u8; 4096];
+    loop {
+        match stream.read(&mut buf) {
+            Ok(0) => break,
+            Ok(n) => response.extend_from_slice(&buf[..n]),
+            Err(e) if e.kind() == std::io::ErrorKind::WouldBlock || e.kind() == std::io::ErrorKind::TimedOut => break,
+            Err(e) => return Err(e.into()),
+        }
+    }
+
+    let resp_str = String::from_utf8_lossy(&response).to_string();
+    if let Some(idx) = resp_str.find("\r\n\r\n") {
+        Ok(resp_str[idx + 4..].to_string())
+    } else {
+        Ok(resp_str)
+    }
+}
+
 /// Route job types to cfcd endpoints.
 fn route_job_to_cfcd(job_type: &str, params: &serde_json::Value) -> anyhow::Result<String> {
     let (method, path) = match job_type {
@@ -142,16 +176,28 @@ fn handle_conn(stream: &mut (impl Read + Write)) -> anyhow::Result<()> {
             .job_type
             .unwrap_or_else(|| "predict_next_state".to_string());
 
-        // Try forwarding to cfcd
-        let cfcd_result = route_job_to_cfcd(&jt, &jr.params);
-
-        let result_value = match cfcd_result {
-            Ok(resp_body) => {
-                serde_json::from_str(&resp_body).unwrap_or(serde_json::json!({"raw": resp_body}))
+        // Route brain jobs to brain server, everything else to cfcd
+        let result_value = if jt == "brain" {
+            let brain_body = serde_json::to_string(&jr.params)?;
+            match forward_to_brain(&brain_body) {
+                Ok(resp_body) => {
+                    serde_json::from_str(&resp_body).unwrap_or(serde_json::json!({"raw": resp_body}))
+                }
+                Err(e) => {
+                    eprintln!("brain forward failed: {e:?} (is brain_server running?)");
+                    serde_json::json!({"error": format!("brain unavailable: {e}"), "ok": false})
+                }
             }
-            Err(e) => {
-                eprintln!("cfcd forward failed: {e:?} (is cfcd running?)");
-                serde_json::json!({"error": format!("cfcd unavailable: {e}"), "mocked": true})
+        } else {
+            // Forward to cfcd
+            match route_job_to_cfcd(&jt, &jr.params) {
+                Ok(resp_body) => {
+                    serde_json::from_str(&resp_body).unwrap_or(serde_json::json!({"raw": resp_body}))
+                }
+                Err(e) => {
+                    eprintln!("cfcd forward failed: {e:?} (is cfcd running?)");
+                    serde_json::json!({"error": format!("cfcd unavailable: {e}"), "mocked": true})
+                }
             }
         };
 
@@ -226,6 +272,9 @@ fn main() -> anyhow::Result<()> {
         let sock = std::env::var("CFCD_SOCKET").unwrap_or_else(|_| "/tmp/cfcd.sock".to_string());
         eprintln!("  cfcd forwarding via Unix: {}", sock);
     }
+
+    let brain_host = std::env::var("BRAIN_HOST").unwrap_or_else(|_| "10.0.2.2:9200".to_string());
+    eprintln!("  brain forwarding via TCP: {}", brain_host);
 
     match listener {
         Listener::Unix(l) => {

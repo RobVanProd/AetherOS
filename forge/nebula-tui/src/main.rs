@@ -1,17 +1,38 @@
 mod aurora_client;
+mod brain_client;
 mod commands;
 mod telemetry;
 mod ui;
 
-use std::io;
+use std::io::{self, Write};
+use std::sync::mpsc;
 use std::time::{Duration, Instant};
 
 use crossterm::{
+    cursor,
     event::{self, Event, KeyCode, KeyModifiers},
-    terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
+    terminal::{self, disable_raw_mode, enable_raw_mode, Clear, ClearType},
     ExecutableCommand,
 };
 use ratatui::prelude::*;
+use ratatui::{TerminalOptions, Viewport};
+
+/// Rich output block for the display.
+#[derive(Clone, Debug)]
+pub enum OutputBlock {
+    /// Plain text line.
+    Text(String),
+    /// Styled text with color.
+    Styled { text: String, color: ui::BlockColor },
+    /// Inline widget box with border.
+    Widget {
+        title: String,
+        lines: Vec<String>,
+        color: ui::BlockColor,
+    },
+    /// Visual separator.
+    Separator,
+}
 
 /// Application state.
 pub struct App {
@@ -19,8 +40,8 @@ pub struct App {
     pub input: String,
     /// Cursor position in input.
     pub cursor: usize,
-    /// Output lines (scrollable history).
-    pub output: Vec<String>,
+    /// Output blocks (scrollable history).
+    pub output: Vec<OutputBlock>,
     /// Scroll offset for output (0 = bottom).
     pub scroll: u16,
     /// System telemetry snapshot.
@@ -31,19 +52,32 @@ pub struct App {
     pub quit: bool,
     /// Command history.
     pub history: Vec<String>,
-    /// Current position in history (for up/down navigation).
+    /// Current position in history.
     pub history_pos: Option<usize>,
+    /// Whether a brain query is in progress.
+    pub thinking: bool,
+    /// Thinking animation frame counter.
+    pub thinking_frame: u8,
+    /// Receiver for brain responses.
+    pub brain_rx: mpsc::Receiver<brain_client::BrainResponse>,
+    /// Sender for brain responses (cloned into threads).
+    pub brain_tx: mpsc::Sender<brain_client::BrainResponse>,
 }
 
 impl App {
     fn new() -> Self {
+        let (tx, rx) = mpsc::channel();
         let mut app = Self {
             input: String::new(),
             cursor: 0,
             output: vec![
-                "Welcome to Nebula — AetherOS TUI Shell v0.3".into(),
-                "Type 'help' for commands, Ctrl-C to exit.".into(),
-                String::new(),
+                OutputBlock::Styled {
+                    text: "AETHER OS v0.3 \u{2014} AI-Native Operating System".into(),
+                    color: ui::BlockColor::Cyan,
+                },
+                OutputBlock::Text("Type anything. The OS understands you.".into()),
+                OutputBlock::Text("Use !command for shell passthrough, 'help' for more.".into()),
+                OutputBlock::Separator,
             ],
             scroll: 0,
             telemetry: telemetry::SysTelemetry::default(),
@@ -51,16 +85,61 @@ impl App {
             quit: false,
             history: Vec::new(),
             history_pos: None,
+            thinking: false,
+            thinking_frame: 0,
+            brain_rx: rx,
+            brain_tx: tx,
         };
         app.telemetry = telemetry::read_telemetry();
         app.aurora = aurora_client::check_health();
         app
     }
 
-    fn push_output(&mut self, line: &str) {
+    fn push_text(&mut self, line: &str) {
         for l in line.lines() {
-            self.output.push(l.to_string());
+            self.output.push(OutputBlock::Text(l.to_string()));
         }
+    }
+
+    fn push_styled(&mut self, text: &str, color: ui::BlockColor) {
+        self.output.push(OutputBlock::Styled {
+            text: text.to_string(),
+            color,
+        });
+    }
+
+    fn push_brain_response(&mut self, resp: brain_client::BrainResponse) {
+        // Add text
+        if !resp.text.is_empty() {
+            for line in resp.text.lines() {
+                self.output.push(OutputBlock::Text(line.to_string()));
+            }
+        }
+
+        // Add widgets
+        for widget in &resp.widgets {
+            let color = match widget.widget_type.as_str() {
+                "weather" => ui::BlockColor::Yellow,
+                "system" => ui::BlockColor::Green,
+                "file" => ui::BlockColor::Blue,
+                "table" => ui::BlockColor::Cyan,
+                _ => ui::BlockColor::White,
+            };
+            self.output.push(OutputBlock::Widget {
+                title: widget.title.clone(),
+                lines: widget.lines.clone(),
+                color,
+            });
+        }
+
+        if resp.latency_ms > 0 {
+            self.output.push(OutputBlock::Styled {
+                text: format!("  [{:.1}s]", resp.latency_ms as f64 / 1000.0),
+                color: ui::BlockColor::DarkGray,
+            });
+        }
+
+        self.output.push(OutputBlock::Separator);
     }
 
     fn submit_command(&mut self) {
@@ -69,40 +148,109 @@ impl App {
             return;
         }
 
-        self.push_output(&format!("> {}", cmd));
+        self.push_styled(&format!("> {}", cmd), ui::BlockColor::Cyan);
         self.history.push(cmd.clone());
         self.history_pos = None;
         self.input.clear();
         self.cursor = 0;
         self.scroll = 0;
 
-        let result = commands::execute(&cmd, &self.telemetry, &self.aurora);
-        if result == "__CLEAR__" {
-            self.output.clear();
-        } else if result == "__QUIT__" {
-            self.quit = true;
-        } else {
-            self.push_output(&result);
-            self.push_output("");
+        // Local-only commands
+        let lower = cmd.to_lowercase();
+        match lower.as_str() {
+            "help" => {
+                let result = commands::help_text();
+                self.push_text(&result);
+                self.output.push(OutputBlock::Separator);
+                return;
+            }
+            "clear" => {
+                self.output.clear();
+                return;
+            }
+            "exit" | "quit" => {
+                self.quit = true;
+                return;
+            }
+            "sysinfo" => {
+                self.telemetry = telemetry::read_telemetry();
+                let result = commands::sysinfo_text(&self.telemetry);
+                self.push_text(&result);
+                self.output.push(OutputBlock::Separator);
+                return;
+            }
+            _ => {}
         }
 
-        // Refresh telemetry + aurora after command
-        self.telemetry = telemetry::read_telemetry();
-        self.aurora = aurora_client::check_health();
+        // Shell passthrough with ! prefix
+        if cmd.starts_with('!') {
+            let shell_cmd = &cmd[1..];
+            let result = commands::run_shell(shell_cmd);
+            self.push_text(&result);
+            self.output.push(OutputBlock::Separator);
+            return;
+        }
+
+        // Everything else goes to brain (async)
+        self.thinking = true;
+        self.thinking_frame = 0;
+        let tx = self.brain_tx.clone();
+        let input = cmd.clone();
+        std::thread::spawn(move || {
+            let result = match brain_client::query_brain(&input) {
+                Ok(resp) => resp,
+                Err(e) => brain_client::BrainResponse {
+                    ok: false,
+                    text: format!("Brain error: {}", e),
+                    widgets: vec![],
+                    latency_ms: 0,
+                    error: Some(e),
+                },
+            };
+            let _ = tx.send(result);
+        });
     }
 }
 
+/// Try to get terminal size, with fallback for serial consoles.
+fn get_terminal_size() -> (u16, u16) {
+    if let Ok((w, h)) = terminal::size() {
+        if w > 0 && h > 0 {
+            return (w, h);
+        }
+    }
+    let cols = std::env::var("COLUMNS")
+        .ok()
+        .and_then(|s| s.parse().ok())
+        .unwrap_or(80u16);
+    let rows = std::env::var("LINES")
+        .ok()
+        .and_then(|s| s.parse().ok())
+        .unwrap_or(24u16);
+    (cols, rows)
+}
+
 fn main() -> io::Result<()> {
-    // Set up terminal
+    let (cols, rows) = get_terminal_size();
+
     enable_raw_mode()?;
-    io::stdout().execute(EnterAlternateScreen)?;
-    let mut terminal = Terminal::new(CrosstermBackend::new(io::stdout()))?;
+    let mut stdout = io::stdout();
+    stdout.execute(Clear(ClearType::All))?;
+    stdout.execute(cursor::MoveTo(0, 0))?;
+
+    let backend = CrosstermBackend::new(stdout);
+    let mut terminal = Terminal::with_options(
+        backend,
+        TerminalOptions {
+            viewport: Viewport::Fixed(Rect::new(0, 0, cols, rows)),
+        },
+    )?;
 
     let mut app = App::new();
-    let tick_rate = Duration::from_millis(500);
+    let tick_rate = Duration::from_millis(250); // Faster tick for thinking animation
     let mut last_tick = Instant::now();
+    let mut telemetry_interval = Instant::now();
 
-    // Main loop
     loop {
         terminal.draw(|f| ui::draw(f, &app))?;
 
@@ -114,16 +262,18 @@ fn main() -> io::Result<()> {
                         app.quit = true;
                     }
                     (_, KeyCode::Enter) => {
-                        app.submit_command();
+                        if !app.thinking {
+                            app.submit_command();
+                        }
                     }
                     (_, KeyCode::Backspace) => {
-                        if app.cursor > 0 {
+                        if app.cursor > 0 && !app.thinking {
                             app.cursor -= 1;
                             app.input.remove(app.cursor);
                         }
                     }
                     (_, KeyCode::Delete) => {
-                        if app.cursor < app.input.len() {
+                        if app.cursor < app.input.len() && !app.thinking {
                             app.input.remove(app.cursor);
                         }
                     }
@@ -176,18 +326,35 @@ fn main() -> io::Result<()> {
                         app.scroll = app.scroll.saturating_sub(10);
                     }
                     (_, KeyCode::Char(c)) => {
-                        app.input.insert(app.cursor, c);
-                        app.cursor += 1;
+                        if !app.thinking {
+                            app.input.insert(app.cursor, c);
+                            app.cursor += 1;
+                        }
                     }
                     _ => {}
                 }
             }
         }
 
-        // Periodic telemetry refresh
+        // Check for brain response
+        if app.thinking {
+            if let Ok(resp) = app.brain_rx.try_recv() {
+                app.thinking = false;
+                app.push_brain_response(resp);
+            } else {
+                app.thinking_frame = app.thinking_frame.wrapping_add(1);
+            }
+        }
+
+        // Periodic tick
         if last_tick.elapsed() >= tick_rate {
-            app.telemetry = telemetry::read_telemetry();
             last_tick = Instant::now();
+        }
+
+        // Telemetry refresh every 2 seconds
+        if telemetry_interval.elapsed() >= Duration::from_secs(2) {
+            app.telemetry = telemetry::read_telemetry();
+            telemetry_interval = Instant::now();
         }
 
         if app.quit {
@@ -195,8 +362,10 @@ fn main() -> io::Result<()> {
         }
     }
 
-    // Restore terminal
     disable_raw_mode()?;
-    io::stdout().execute(LeaveAlternateScreen)?;
+    let mut stdout = io::stdout();
+    stdout.execute(Clear(ClearType::All))?;
+    stdout.execute(cursor::MoveTo(0, 0))?;
+    stdout.flush()?;
     Ok(())
 }

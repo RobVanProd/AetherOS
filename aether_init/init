@@ -54,6 +54,7 @@ sleep 2
 AETHERD_PORT=9101
 AURORAD_PORT=9102
 CFCD_HOST_ADDR=10.0.2.2:9100
+BRAIN_HOST_ADDR=10.0.2.2:9200
 
 start_aether_services() {
     # aetherd — audit/policy daemon (TCP on port 9101)
@@ -62,10 +63,10 @@ start_aether_services() {
         echo "[init] aetherd started on tcp://0.0.0.0:$AETHERD_PORT"
     fi
 
-    # aurorad — job routing daemon (TCP on port 9102, cfcd via host TCP)
+    # aurorad — job routing daemon (TCP on port 9102, cfcd via host TCP, brain via host TCP)
     if [ -x /sbin/aurorad ]; then
-        CFCD_HOST=$CFCD_HOST_ADDR AURORAD_TCP_PORT=$AURORAD_PORT /sbin/aurorad &
-        echo "[init] aurorad started on tcp://0.0.0.0:$AURORAD_PORT (cfcd: $CFCD_HOST_ADDR)"
+        CFCD_HOST=$CFCD_HOST_ADDR BRAIN_HOST=$BRAIN_HOST_ADDR AURORAD_TCP_PORT=$AURORAD_PORT /sbin/aurorad &
+        echo "[init] aurorad started on tcp://0.0.0.0:$AURORAD_PORT (cfcd: $CFCD_HOST_ADDR, brain: $BRAIN_HOST_ADDR)"
     fi
 
     # Brief pause for services to bind
@@ -90,7 +91,12 @@ check_tcp_port() {
 export HOME=/root
 export PATH=/bin:/sbin:/usr/bin:/usr/sbin
 export TERM=linux
+export COLUMNS=80
+export LINES=24
 export PS1='\033[1;36maether\033[0m:\033[1;34m\w\033[0m\$ '
+
+# Set terminal size for serial console
+stty cols 80 rows 24 2>/dev/null
 
 mkdir -p /root
 
