@@ -83,6 +83,15 @@ else
     echo "  [nebula] Not found (build with: cargo build --target $MUSL_TARGET --release)"
 fi
 
+# Copy nebula-fb (framebuffer GUI) if built
+if [[ -f "$MUSL_RELEASE/nebula-fb" ]]; then
+    echo "  [nebula-fb] Installing static binary"
+    cp "$MUSL_RELEASE/nebula-fb" "$INITRAMFS_DIR/bin/nebula-fb"
+    chmod +x "$INITRAMFS_DIR/bin/nebula-fb"
+else
+    echo "  [nebula-fb] Not found (optional — graphical mode requires it)"
+fi
+
 # ---- Init script ----
 echo "  [init] Installing Aether init"
 cp "$ROOT/aether_init/init" "$INITRAMFS_DIR/init"
@@ -125,6 +134,7 @@ echo ""
 echo "=== Initramfs built ==="
 echo "  Output: $OUTPUT ($(du -h "$OUTPUT" | cut -f1))"
 echo "  BusyBox: $(ls -lh bin/busybox | awk '{print $5}')"
-[[ -f sbin/aetherd ]] && echo "  aetherd: $(ls -lh sbin/aetherd | awk '{print $5}')" || true
-[[ -f sbin/aurorad ]] && echo "  aurorad: $(ls -lh sbin/aurorad | awk '{print $5}')" || true
-[[ -f bin/nebula ]] && echo "  nebula:  $(ls -lh bin/nebula | awk '{print $5}')" || true
+[[ -f sbin/aetherd ]] && echo "  aetherd:   $(ls -lh sbin/aetherd | awk '{print $5}')" || true
+[[ -f sbin/aurorad ]] && echo "  aurorad:   $(ls -lh sbin/aurorad | awk '{print $5}')" || true
+[[ -f bin/nebula ]] && echo "  nebula:    $(ls -lh bin/nebula | awk '{print $5}')" || true
+[[ -f bin/nebula-fb ]] && echo "  nebula-fb: $(ls -lh bin/nebula-fb | awk '{print $5}')" || true

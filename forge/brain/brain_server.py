@@ -35,6 +35,11 @@ CLAUDE_MODEL = "sonnet"
 MAX_HISTORY = 20
 HOME = os.path.expanduser("~")
 
+# Ollama config for local model proactive insights
+OLLAMA_URL = os.environ.get("OLLAMA_URL", "http://localhost:11434")
+OLLAMA_MODEL = os.environ.get("OLLAMA_MODEL", "phi3:mini")
+USE_LOCAL_MODEL = os.environ.get("USE_LOCAL_MODEL", "false") == "true"
+
 BRAIN_SYSTEM_PROMPT = """You are the brain of AetherOS, a generative AI-native operating system built by Aeternum Labs. You run inside the OS. The user types natural language into the omni-bar and you respond with exactly what they need.
 
 You are NOT a chatbot — you ARE the operating system's intelligence.
@@ -417,9 +422,269 @@ def call_claude(user_input: str, tool_context: str, history: list) -> str:
 # Brain logic
 # ---------------------------------------------------------------------------
 
+BRAIN_PROACTIVE_PROMPT = """You are AetherOS's proactive intelligence. Given system context, decide if there's anything worth telling the user.
+
+Rules:
+- Only respond if there's genuinely useful or interesting information
+- Be concise: 1-2 sentences max
+- Suggestions should be actionable
+- Don't repeat what's obvious from the dashboard numbers
+- If nothing interesting, respond {"has_insight": false}
+- If interesting, respond {"has_insight": true, "text": "...", "widgets": [], "priority": "normal", "category": "observation"}
+- priority: "urgent", "normal", or "low"
+- category: "suggestion", "observation", or "warning"
+
+Respond with ONLY valid JSON. No markdown fences."""
+
+
+def call_ollama(prompt: str, system_prompt: str = "", timeout: int = 15) -> str:
+    """Call a local Ollama model for fast proactive insights."""
+    try:
+        payload = {
+            "model": OLLAMA_MODEL,
+            "prompt": prompt,
+            "system": system_prompt,
+            "stream": False,
+            "options": {"temperature": 0.7, "num_predict": 200}
+        }
+        if HAS_REQUESTS:
+            resp = requests.post(
+                f"{OLLAMA_URL}/api/generate",
+                json=payload, timeout=timeout
+            )
+            if resp.status_code == 200:
+                return resp.json().get("response", "")
+            return ""
+        else:
+            result = subprocess.run(
+                ["curl", "-sf", "-X", "POST",
+                 f"{OLLAMA_URL}/api/generate",
+                 "-H", "Content-Type: application/json",
+                 "-d", json.dumps(payload)],
+                capture_output=True, text=True, timeout=timeout
+            )
+            if result.returncode == 0:
+                return json.loads(result.stdout).get("response", "")
+            return ""
+    except Exception as e:
+        print(f"[brain] Ollama error: {e}")
+        return ""
+
+
+BRAIN_DASHBOARD_PROMPT = """You are AetherOS's dashboard intelligence. Given a user's name, interests, system telemetry, and time of day, generate a personalized dashboard layout.
+
+Respond with ONLY valid JSON (no markdown fences) in this format:
+{
+  "greeting": "Good afternoon, Rob.",
+  "subtitle": "Here's what I found for you today.",
+  "cards": [
+    {"type": "system", "title": "System Health", "metrics": {"cpu": 42, "mem": 19}},
+    {"type": "weather", "title": "Weather", "temp": "45F", "desc": "Cloudy", "wind": "12mph NW"},
+    {"type": "text", "title": "Insight", "body": "Your system has been running smoothly for 2 hours."},
+    {"type": "news", "title": "Tech News", "body": "Latest headline relevant to user interests."}
+  ]
+}
+
+Card types: system, weather, text, news, tip, alert. Generate 3-5 cards based on user interests and context. Always include a system health card. Be creative and relevant."""
+
+
 class Brain:
     def __init__(self):
         self.history = []
+        self.last_proactive_time = 0
+        self.proactive_cooldown = 60  # minimum seconds between proactive calls
+
+    def proactive(self, context: dict) -> dict:
+        """Process system context and return proactive insight if warranted."""
+        now = time.time()
+        if now - self.last_proactive_time < self.proactive_cooldown:
+            return {"has_insight": False, "reason": "cooldown"}
+        self.last_proactive_time = now
+
+        # Build a compact context string
+        parts = []
+        if "telemetry" in context:
+            t = context["telemetry"]
+            parts.append(f"System: CPU {t.get('cpu', 0):.0f}%, Mem {t.get('mem_pct', 0):.0f}%, "
+                         f"Uptime {t.get('uptime', 'unknown')}, Procs {t.get('procs', 0)}, "
+                         f"Net {t.get('network', 'unknown')}")
+
+        if "world_model" in context:
+            wm = context["world_model"]
+            parts.append(f"World Model: error={wm.get('prediction_error', 'N/A')}, "
+                         f"trend={wm.get('trend', 'unknown')}, "
+                         f"learning={wm.get('learning_enabled', False)}")
+
+        if "recent_alerts" in context and context["recent_alerts"]:
+            alerts = context["recent_alerts"][:5]
+            parts.append(f"Recent alerts: {', '.join(alerts)}")
+
+        if "user_activity" in context:
+            ua = context["user_activity"]
+            parts.append(f"User: last query='{ua.get('last_query', 'none')}', "
+                         f"session={ua.get('session_duration', 'unknown')}")
+
+        if "tasks" in context:
+            tk = context["tasks"]
+            parts.append(f"Tasks: {tk.get('active', 0)} active, {tk.get('completed', 0)} done")
+
+        if "user_context" in context:
+            uc = context["user_context"]
+            if "topics" in uc:
+                parts.append(f"User interests: {', '.join(uc['topics'][:5])}")
+
+        context_str = "\n".join(parts)
+
+        print(f"[brain] Proactive check with {len(context_str)} chars of context")
+
+        # Route: proactive calls → local model (fast), complex queries → Claude (quality)
+        if USE_LOCAL_MODEL:
+            print(f"[brain] Proactive via local model ({OLLAMA_MODEL})")
+            response_text = call_ollama(
+                f"Current system state:\n{context_str}\n\nIs there anything the user should know?",
+                system_prompt=BRAIN_PROACTIVE_PROMPT,
+                timeout=10
+            )
+            if response_text:
+                try:
+                    cleaned = response_text.strip()
+                    if cleaned.startswith("```"):
+                        cleaned = re.sub(r'^```(?:json)?\s*\n?', '', cleaned)
+                        cleaned = re.sub(r'\n?```\s*$', '', cleaned)
+                    parsed = json.loads(cleaned)
+                    return parsed
+                except (json.JSONDecodeError, KeyError):
+                    print(f"[brain] Local model parse failed, falling back to Claude")
+
+        # Call Claude with proactive prompt (cheaper, faster)
+        try:
+            result = subprocess.run(
+                ["claude", "-p", "--model", CLAUDE_MODEL,
+                 "--system-prompt", BRAIN_PROACTIVE_PROMPT,
+                 "--output-format", "json",
+                 "--no-session-persistence",
+                 "--max-budget-usd", "0.05",
+                 f"Current system state:\n{context_str}\n\nIs there anything the user should know?"],
+                capture_output=True, text=True, timeout=30,
+                cwd="/tmp",
+                env={**os.environ,
+                     "CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC": "1",
+                     "DISABLE_AUTOUPDATER": "1"}
+            )
+            if result.returncode != 0:
+                return {"has_insight": False, "error": result.stderr[:100]}
+
+            output = result.stdout.strip()
+            cli_result = json.loads(output)
+            response_text = cli_result.get("result", "")
+
+            # Clean markdown fences
+            cleaned = response_text.strip()
+            if cleaned.startswith("```"):
+                cleaned = re.sub(r'^```(?:json)?\s*\n?', '', cleaned)
+                cleaned = re.sub(r'\n?```\s*$', '', cleaned)
+                cleaned = cleaned.strip()
+
+            parsed = json.loads(cleaned)
+            return parsed
+
+        except subprocess.TimeoutExpired:
+            return {"has_insight": False, "error": "timeout"}
+        except (json.JSONDecodeError, KeyError):
+            return {"has_insight": False, "error": "parse_error"}
+        except Exception as e:
+            return {"has_insight": False, "error": str(e)}
+
+    def dashboard(self, context: dict) -> dict:
+        """Generate a personalized dashboard layout based on user context."""
+        name = context.get("name", "User")
+        interests = context.get("interests", [])
+        telemetry = context.get("telemetry", {})
+
+        # Determine time of day greeting
+        hour = time.localtime().tm_hour
+        if hour < 12:
+            tod = "morning"
+        elif hour < 17:
+            tod = "afternoon"
+        else:
+            tod = "evening"
+
+        prompt_parts = [
+            f"User: {name}",
+            f"Time: {tod}",
+            f"Interests: {', '.join(interests) if interests else 'general'}",
+        ]
+        if telemetry:
+            prompt_parts.append(f"System: CPU {telemetry.get('cpu', 0):.0f}%, Mem {telemetry.get('mem_pct', 0):.0f}%, Uptime {telemetry.get('uptime', 'unknown')}")
+
+        context_str = "\n".join(prompt_parts)
+
+        # Route: proactive/dashboard generation → local model if available, else Claude
+        if USE_LOCAL_MODEL:
+            print(f"[brain] Dashboard via local model ({OLLAMA_MODEL})")
+            response_text = call_ollama(
+                f"Generate a dashboard layout:\n{context_str}",
+                system_prompt=BRAIN_DASHBOARD_PROMPT,
+                timeout=15
+            )
+        else:
+            response_text = ""
+
+        # Fall back to Claude if local model didn't produce valid JSON
+        parsed = None
+        if response_text:
+            try:
+                cleaned = response_text.strip()
+                if cleaned.startswith("```"):
+                    cleaned = re.sub(r'^```(?:json)?\s*\n?', '', cleaned)
+                    cleaned = re.sub(r'\n?```\s*$', '', cleaned)
+                parsed = json.loads(cleaned)
+                if "greeting" in parsed and "cards" in parsed:
+                    print(f"[brain] Dashboard from local model OK")
+                    return parsed
+            except (json.JSONDecodeError, KeyError):
+                pass
+
+        # Use Claude for dashboard
+        print(f"[brain] Dashboard via Claude ({CLAUDE_MODEL})")
+        try:
+            result = subprocess.run(
+                ["claude", "-p", "--model", CLAUDE_MODEL,
+                 "--system-prompt", BRAIN_DASHBOARD_PROMPT,
+                 "--output-format", "json",
+                 "--no-session-persistence",
+                 "--max-budget-usd", "0.10",
+                 f"Generate dashboard:\n{context_str}"],
+                capture_output=True, text=True, timeout=30,
+                cwd="/tmp",
+                env={**os.environ,
+                     "CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC": "1",
+                     "DISABLE_AUTOUPDATER": "1"}
+            )
+            if result.returncode == 0:
+                output = result.stdout.strip()
+                cli_result = json.loads(output)
+                response_text = cli_result.get("result", "")
+                cleaned = response_text.strip()
+                if cleaned.startswith("```"):
+                    cleaned = re.sub(r'^```(?:json)?\s*\n?', '', cleaned)
+                    cleaned = re.sub(r'\n?```\s*$', '', cleaned)
+                parsed = json.loads(cleaned)
+                if "greeting" in parsed:
+                    return parsed
+        except Exception as e:
+            print(f"[brain] Dashboard Claude error: {e}")
+
+        # Fallback: static dashboard
+        return {
+            "greeting": f"Good {tod}, {name}.",
+            "subtitle": "Here's your system overview.",
+            "cards": [
+                {"type": "system", "title": "System Health", "metrics": {"cpu": int(telemetry.get("cpu", 0)), "mem": int(telemetry.get("mem_pct", 0))}},
+                {"type": "text", "title": "Welcome", "body": "AetherOS is running. Ask me anything in the omnibar below."},
+            ]
+        }
 
     def query(self, user_input: str) -> dict:
         """Process a natural language query and return structured response."""
@@ -502,6 +767,32 @@ class BrainHandler(BaseHTTPRequestHandler):
             except Exception as e:
                 traceback.print_exc()
                 self._send_json(500, {"ok": False, "text": f"Brain error: {e}", "widgets": []})
+
+        elif self.path == "/v0/brain/proactive":
+            try:
+                context = json.loads(body) if body else {}
+                print(f"[brain] Proactive check")
+                result = brain_instance.proactive(context)
+                result["ok"] = True
+                self._send_json(200, result)
+            except Exception as e:
+                traceback.print_exc()
+                self._send_json(500, {"ok": False, "has_insight": False, "error": str(e)})
+
+        elif self.path == "/v0/brain/dashboard":
+            try:
+                context = json.loads(body) if body else {}
+                print(f"[brain] Dashboard request for {context.get('name', 'unknown')}")
+                start = time.time()
+                result = brain_instance.dashboard(context)
+                elapsed = time.time() - start
+                result["ok"] = True
+                result["latency_ms"] = int(elapsed * 1000)
+                print(f"[brain] Dashboard done in {elapsed:.1f}s")
+                self._send_json(200, result)
+            except Exception as e:
+                traceback.print_exc()
+                self._send_json(500, {"ok": False, "error": str(e)})
         else:
             self._send_json(404, {"ok": False, "error": "not_found"})
 

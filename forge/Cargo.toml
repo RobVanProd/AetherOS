@@ -3,5 +3,6 @@ members = [
   "aetherd",
   "aurorad",
   "nebula-tui",
+  "nebula-fb",
 ]
 resolver = "2"

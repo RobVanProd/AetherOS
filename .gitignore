@@ -22,6 +22,10 @@
 **/dist/
 **/out/
 
+# Python
+__pycache__/
+*.pyc
+
 # Editor/OS cruft
 .DS_Store
 Thumbs.db

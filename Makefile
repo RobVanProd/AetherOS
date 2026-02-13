@@ -1,4 +1,4 @@
-.PHONY: boot build build-rust build-initramfs run demo brain-demo forge-test clean
+.PHONY: boot build build-rust build-initramfs run demo brain-demo boot-gui brain-demo-gui forge-test clean
 
 MUSL_TARGET := x86_64-unknown-linux-musl
 FORGE_DIR := forge
@@ -31,6 +31,14 @@ demo:
 ## Boot with brain server + cfcd (AI-native experience)
 brain-demo:
 	./tools/run_qemu.sh --with-brain
+
+## Boot graphical (framebuffer GUI)
+boot-gui: build
+	./tools/run_qemu.sh --graphical
+
+## Boot graphical with brain server + cfcd
+brain-demo-gui:
+	./tools/run_qemu.sh --with-brain --graphical
 
 ## Run Forge smoke tests (Rust)
 forge-test:

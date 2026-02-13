@@ -88,8 +88,8 @@ fn forward_to_cfcd(method: &str, path: &str, body: &str) -> anyhow::Result<Strin
     send_http_request(&mut stream, &mut reader, method, path, body)
 }
 
-/// Forward a request to the brain server (Claude-powered NL processing).
-fn forward_to_brain(body: &str) -> anyhow::Result<String> {
+/// Forward a request to the brain server at a specific path.
+fn forward_to_brain_path(path: &str, body: &str) -> anyhow::Result<String> {
     let host = std::env::var("BRAIN_HOST").unwrap_or_else(|_| "10.0.2.2:9200".to_string());
     let mut stream = TcpStream::connect(&host)?;
     // Brain queries can take 30+ seconds (LLM latency)
@@ -97,8 +97,8 @@ fn forward_to_brain(body: &str) -> anyhow::Result<String> {
     stream.set_write_timeout(Some(std::time::Duration::from_secs(5)))?;
 
     let request = format!(
-        "POST /v0/brain HTTP/1.1\r\nHost: {}\r\nContent-Type: application/json\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{}",
-        host, body.len(), body
+        "POST {path} HTTP/1.1\r\nHost: {host}\r\nContent-Type: application/json\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{body}",
+        body.len()
     );
     stream.write_all(request.as_bytes())?;
 
@@ -177,9 +177,14 @@ fn handle_conn(stream: &mut (impl Read + Write)) -> anyhow::Result<()> {
             .unwrap_or_else(|| "predict_next_state".to_string());
 
         // Route brain jobs to brain server, everything else to cfcd
-        let result_value = if jt == "brain" {
+        let result_value = if jt == "brain" || jt == "brain_proactive" || jt == "brain_dashboard" {
+            let brain_path = match jt.as_str() {
+                "brain_proactive" => "/v0/brain/proactive",
+                "brain_dashboard" => "/v0/brain/dashboard",
+                _ => "/v0/brain",
+            };
             let brain_body = serde_json::to_string(&jr.params)?;
-            match forward_to_brain(&brain_body) {
+            match forward_to_brain_path(brain_path, &brain_body) {
                 Ok(resp_body) => {
                     serde_json::from_str(&resp_body).unwrap_or(serde_json::json!({"raw": resp_body}))
                 }

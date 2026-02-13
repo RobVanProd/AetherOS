@@ -26,7 +26,14 @@ pub fn help_text() -> String {
         "    !ps aux     Run shell command directly",
         "    !ls -la     Any command prefixed with !",
         "",
-        "  Navigation: \u{2191}\u{2193} history, PgUp/PgDn scroll",
+        "  Navigation:
+    Tab         Switch panels (Input/Feed/Sidebar)
+    Esc         Return to input
+    \u{2191}\u{2193}          History (input) / Select card (feed)
+    j/k         Select card (in feed panel)
+    Enter       Collapse/expand card (in feed)
+    d           Dismiss card (in feed)
+    PgUp/PgDn   Scroll",
         "",
     ]
     .join("\n")

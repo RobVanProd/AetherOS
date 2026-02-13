@@ -47,10 +47,12 @@ trap cleanup EXIT
 # Parse flags
 WITH_CFCD=false
 WITH_BRAIN=false
+GRAPHICAL=false
 for arg in "$@"; do
     case "$arg" in
         --with-cfcd) WITH_CFCD=true ;;
         --with-brain) WITH_BRAIN=true; WITH_CFCD=true ;;
+        --graphical) GRAPHICAL=true ;;
     esac
 done
 
@@ -100,13 +102,29 @@ else
 fi
 
 # Boot
-qemu-system-x86_64 \
-    $KVM_ARGS \
-    -m 512 \
-    -kernel "$KERNEL" \
-    -initrd "$INITRD" \
-    -append "console=ttyS0 quiet loglevel=3" \
-    -nographic \
-    -no-reboot \
-    -netdev user,id=net0,hostfwd=tcp::2222-:22 \
-    -device e1000,netdev=net0
+if $GRAPHICAL; then
+    echo "  Mode: Graphical (1920x1080 framebuffer)"
+    qemu-system-x86_64 \
+        $KVM_ARGS \
+        -m 512 \
+        -kernel "$KERNEL" \
+        -initrd "$INITRD" \
+        -append "video=1920x1080 console=tty0 console=ttyS0 quiet loglevel=3" \
+        -vga std \
+        -display gtk \
+        -serial stdio \
+        -no-reboot \
+        -netdev user,id=net0,hostfwd=tcp::2222-:22 \
+        -device e1000,netdev=net0
+else
+    qemu-system-x86_64 \
+        $KVM_ARGS \
+        -m 512 \
+        -kernel "$KERNEL" \
+        -initrd "$INITRD" \
+        -append "console=ttyS0 quiet loglevel=3" \
+        -nographic \
+        -no-reboot \
+        -netdev user,id=net0,hostfwd=tcp::2222-:22 \
+        -device e1000,netdev=net0
+fi

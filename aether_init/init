@@ -186,10 +186,19 @@ echo ""
 echo "  Type 'help' for commands, 'sysinfo' for system status"
 echo ""
 
-# Launch Nebula TUI if available, otherwise drop to sh
+# Launch GUI shell if framebuffer available and graphical boot, else TUI, else sh
 cd /root
 export AURORAD_TCP_PORT=$AURORAD_PORT
-if [ -x /bin/nebula ]; then
+
+# Detect graphical mode: kernel cmdline has "console=tty0" when booting with display
+GRAPHICAL_BOOT=false
+if grep -q "console=tty0" /proc/cmdline 2>/dev/null; then
+    GRAPHICAL_BOOT=true
+fi
+
+if $GRAPHICAL_BOOT && [ -e /dev/fb0 ] && [ -x /bin/nebula-fb ]; then
+    exec /bin/nebula-fb
+elif [ -x /bin/nebula ]; then
     exec /bin/nebula
 else
     exec /bin/sh
