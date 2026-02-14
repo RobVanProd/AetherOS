@@ -1,5 +1,6 @@
 /// Scene system — Scene trait and SceneManager with stack-based transitions.
 
+use crate::audio::AudioPlayer;
 use crate::input::InputEvent;
 use crate::renderer::Renderer;
 use crate::text::TextRenderer;
@@ -15,11 +16,11 @@ pub enum Transition {
 /// A single scene (screen) in the application.
 pub trait Scene {
     /// Update logic. dt is seconds since last frame.
-    fn update(&mut self, dt: f32) -> Transition;
+    fn update(&mut self, dt: f32, audio: &AudioPlayer) -> Transition;
     /// Draw the scene to the renderer.
     fn draw(&self, renderer: &mut Renderer, text: &TextRenderer);
     /// Handle an input event.
-    fn handle_input(&mut self, event: InputEvent) -> Transition;
+    fn handle_input(&mut self, event: InputEvent, audio: &AudioPlayer) -> Transition;
 }
 
 /// Manages a stack of scenes.
@@ -34,9 +35,9 @@ impl SceneManager {
         }
     }
 
-    pub fn update(&mut self, dt: f32) {
+    pub fn update(&mut self, dt: f32, audio: &AudioPlayer) {
         let transition = if let Some(scene) = self.stack.last_mut() {
-            scene.update(dt)
+            scene.update(dt, audio)
         } else {
             return;
         };
@@ -49,9 +50,9 @@ impl SceneManager {
         }
     }
 
-    pub fn handle_input(&mut self, event: InputEvent) {
+    pub fn handle_input(&mut self, event: InputEvent, audio: &AudioPlayer) {
         let transition = if let Some(scene) = self.stack.last_mut() {
-            scene.handle_input(event)
+            scene.handle_input(event, audio)
         } else {
             return;
         };

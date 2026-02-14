@@ -33,6 +33,10 @@ hostname aether
 [ -f /proc/sys/kernel/hotplug ] && echo /sbin/mdev > /proc/sys/kernel/hotplug
 mdev -s 2>/dev/null
 
+# Ensure sound device nodes exist
+mkdir -p /dev/snd
+mdev -s 2>/dev/null
+
 # ============================================
 # PHASE 4: Networking
 # ============================================

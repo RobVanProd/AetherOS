@@ -91,6 +91,8 @@ pub struct Framebuffer {
     fb_len: usize,
     pub info: ScreenInfo,
     back_buffer: Vec<u8>,
+    prev_buffer: Vec<u8>,
+    dirty: bool,
 }
 
 unsafe impl Send for Framebuffer {}
@@ -143,6 +145,7 @@ impl Framebuffer {
         let fb_ptr = fb_nonnull.as_ptr() as *mut u8;
 
         let back_buffer = vec![0u8; fb_len];
+        let prev_buffer = vec![0xFFu8; fb_len]; // init different so first frame is dirty
 
         eprintln!(
             "[fb] Opened {path}: {}x{} bpp={} stride={}",
@@ -155,6 +158,8 @@ impl Framebuffer {
             fb_len,
             info,
             back_buffer,
+            prev_buffer,
+            dirty: true,
         })
     }
 
@@ -173,30 +178,37 @@ impl Framebuffer {
         self.info.height
     }
 
-    /// Blit the back buffer to the framebuffer (RGBA → BGRA conversion).
-    pub fn present(&mut self) {
-        // tiny-skia renders RGBA premultiplied. Linux fb is typically BGRA (or BGRX).
-        // We need to swap R and B channels.
-        let src = &self.back_buffer;
-        let dst = unsafe { std::slice::from_raw_parts_mut(self.fb_ptr, self.fb_len) };
-        let stride = self.info.stride as usize;
-        let w = self.info.width as usize;
-        let bpp = (self.info.bpp / 8) as usize;
+    /// Mark the back buffer as dirty (call after drawing).
+    pub fn mark_dirty(&mut self) {
+        self.dirty = true;
+    }
 
-        for y in 0..self.info.height as usize {
-            let src_row = &src[y * stride..y * stride + w * bpp];
-            let dst_row = &mut dst[y * stride..y * stride + w * bpp];
-            for x in 0..w {
-                let off = x * bpp;
-                // RGBA → BGRA
-                dst_row[off] = src_row[off + 2]; // B
-                dst_row[off + 1] = src_row[off + 1]; // G
-                dst_row[off + 2] = src_row[off]; // R
-                if bpp >= 4 {
-                    dst_row[off + 3] = src_row[off + 3]; // A
-                }
-            }
+    /// Returns true if the back buffer differs from the previous frame.
+    pub fn is_dirty(&self) -> bool {
+        self.dirty || self.back_buffer != self.prev_buffer
+    }
+
+    /// Blit the back buffer to the framebuffer (RGBA → BGRA conversion).
+    /// Skips the blit entirely if nothing changed.
+    pub fn present(&mut self) {
+        if !self.is_dirty() {
+            return;
         }
+
+        // tiny-skia renders RGBA premultiplied. Linux fb is typically BGRA (or BGRX).
+        // Swap R and B channels using 4-byte chunks for speed.
+        let dst = unsafe { std::slice::from_raw_parts_mut(self.fb_ptr, self.fb_len) };
+
+        // Fast path: 32bpp, process 4 bytes at a time
+        for (src_px, dst_px) in self.back_buffer.chunks_exact(4).zip(dst.chunks_exact_mut(4)) {
+            dst_px[0] = src_px[2]; // B
+            dst_px[1] = src_px[1]; // G
+            dst_px[2] = src_px[0]; // R
+            dst_px[3] = src_px[3]; // A
+        }
+
+        self.prev_buffer.copy_from_slice(&self.back_buffer);
+        self.dirty = false;
     }
 
     /// Fill entire back buffer with a solid color.

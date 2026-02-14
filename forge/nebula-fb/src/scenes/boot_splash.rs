@@ -1,5 +1,6 @@
 /// Boot splash — "AetherOS" fades in, then transitions to setup or dashboard.
 
+use crate::audio::AudioPlayer;
 use crate::input::InputEvent;
 use crate::renderer::Renderer;
 use crate::scene::{Scene, Transition};
@@ -14,14 +15,19 @@ pub struct BootSplash {
     elapsed: f32,
     screen_width: u32,
     screen_height: u32,
+    audio_started: bool,
 }
 
 impl BootSplash {
-    pub fn new(screen_width: u32, screen_height: u32) -> Self {
+    pub fn new(screen_width: u32, screen_height: u32, audio: &AudioPlayer) -> Self {
+        // Play boot chime immediately
+        audio.play_boot_chime();
+
         Self {
             elapsed: 0.0,
             screen_width,
             screen_height,
+            audio_started: true,
         }
     }
 
@@ -31,12 +37,12 @@ impl BootSplash {
 }
 
 impl Scene for BootSplash {
-    fn update(&mut self, dt: f32) -> Transition {
+    fn update(&mut self, dt: f32, audio: &AudioPlayer) -> Transition {
         self.elapsed += dt;
         if self.elapsed >= SPLASH_DURATION {
             if Self::is_first_boot() {
                 Transition::Replace(Box::new(
-                    super::setup::SetupWizard::new(self.screen_width, self.screen_height),
+                    super::setup::SetupWizard::new(self.screen_width, self.screen_height, audio),
                 ))
             } else {
                 Transition::Replace(Box::new(
@@ -91,10 +97,30 @@ impl Scene for BootSplash {
                 c,
             );
         }
+
+        // "Press any key to skip" hint (fades in after 1s)
+        if self.elapsed > 1.0 {
+            let hint_alpha = ((self.elapsed - 1.0) / FADE_IN_DURATION).clamp(0.0, 1.0);
+            let hint_color = theme::Color::rgba(
+                theme::TEXT_MUTED.r,
+                theme::TEXT_MUTED.g,
+                theme::TEXT_MUTED.b,
+                (hint_alpha * 255.0) as u8,
+            );
+            text.draw_centered(
+                renderer,
+                "Press any key to skip",
+                0.0,
+                self.screen_height as f32 - 80.0,
+                self.screen_width as f32,
+                theme::FONT_SIZE_SMALL,
+                hint_color,
+            );
+        }
     }
 
-    fn handle_input(&mut self, _event: InputEvent) -> Transition {
-        // Skip splash on any key
+    fn handle_input(&mut self, _event: InputEvent, _audio: &AudioPlayer) -> Transition {
+        // Skip splash on any key or click
         self.elapsed = SPLASH_DURATION;
         Transition::None
     }

@@ -92,6 +92,16 @@ else
     echo "  [nebula-fb] Not found (optional — graphical mode requires it)"
 fi
 
+# ---- Sound files ----
+SOUNDS_SRC="$ROOT/assets/sounds"
+if [[ -f "$SOUNDS_SRC/post.wav" ]]; then
+    echo "  [sounds] Installing sound files"
+    mkdir -p "$INITRAMFS_DIR/usr/share/sounds"
+    cp "$SOUNDS_SRC/post.wav" "$INITRAMFS_DIR/usr/share/sounds/post.wav"
+else
+    echo "  [sounds] No sound files found (optional)"
+fi
+
 # ---- Init script ----
 echo "  [init] Installing Aether init"
 cp "$ROOT/aether_init/init" "$INITRAMFS_DIR/init"
