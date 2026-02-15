@@ -3,6 +3,7 @@
 /// Step 2: Interest chips selection
 /// Step 3: Animated progress "Setting up your experience..."
 
+use crate::audio::{AudioPlayer, PlayHandle};
 use crate::input::InputEvent;
 use crate::renderer::Renderer;
 use crate::scene::{Scene, Transition};
@@ -33,6 +34,12 @@ enum Step {
     Finishing,
 }
 
+/// Stored layout bounds for hit-testing mouse clicks.
+struct ClickBounds {
+    continue_btn: Option<(f32, f32, f32, f32)>, // x, y, w, h
+    chips: Vec<(f32, f32, f32, f32)>,            // per-chip bounds
+}
+
 pub struct SetupWizard {
     screen_width: u32,
     screen_height: u32,
@@ -43,10 +50,16 @@ pub struct SetupWizard {
     interest_cursor: usize,
     finish_elapsed: f32,
     finish_duration: f32,
+    bounds: ClickBounds,
+    music_handle: Option<PlayHandle>,
+    music_fading: bool,
 }
 
 impl SetupWizard {
-    pub fn new(screen_width: u32, screen_height: u32) -> Self {
+    pub fn new(screen_width: u32, screen_height: u32, audio: &AudioPlayer) -> Self {
+        // Start POST music loop
+        let handle = audio.play_post_music();
+
         Self {
             screen_width,
             screen_height,
@@ -57,6 +70,12 @@ impl SetupWizard {
             interest_cursor: 0,
             finish_elapsed: 0.0,
             finish_duration: 3.0,
+            bounds: ClickBounds {
+                continue_btn: None,
+                chips: Vec::new(),
+            },
+            music_handle: handle,
+            music_fading: false,
         }
     }
 
@@ -80,10 +99,24 @@ impl SetupWizard {
 }
 
 impl Scene for SetupWizard {
-    fn update(&mut self, dt: f32) -> Transition {
+    fn update(&mut self, dt: f32, _audio: &AudioPlayer) -> Transition {
         if self.step == Step::Finishing {
             self.finish_elapsed += dt;
+            let progress = self.finish_elapsed / self.finish_duration;
+
+            // Fade out music at ~80%
+            if progress >= 0.8 && !self.music_fading {
+                self.music_fading = true;
+                if let Some(ref handle) = self.music_handle {
+                    handle.fade_out(3000);
+                }
+            }
+
             if self.finish_elapsed >= self.finish_duration {
+                // Stop music
+                if let Some(ref handle) = self.music_handle {
+                    handle.stop();
+                }
                 self.save_setup();
                 return Transition::Replace(Box::new(
                     super::dashboard::Dashboard::new(self.screen_width, self.screen_height),
@@ -98,6 +131,10 @@ impl Scene for SetupWizard {
 
         let cx = self.screen_width as f32 / 2.0;
         let w = self.screen_width as f32;
+
+        // We need mutable bounds but draw takes &self — use interior mutability via raw pointer
+        // This is safe because we only write layout data that's read in handle_input
+        let bounds_ptr = &self.bounds as *const ClickBounds as *mut ClickBounds;
 
         match self.step {
             Step::Name => {
@@ -125,7 +162,23 @@ impl Scene for SetupWizard {
                 // Continue button
                 let btn_label = "Continue";
                 let btn_w = text.measure(btn_label, theme::FONT_SIZE_BODY) + 24.0;
-                button::draw_button(renderer, text, btn_label, cx - btn_w / 2.0, 400.0, !self.name.is_empty());
+                let btn_x = cx - btn_w / 2.0;
+                let btn_y = 400.0;
+                let (bw, bh) = button::draw_button(renderer, text, btn_label, btn_x, btn_y, !self.name.is_empty());
+
+                // Store button bounds for click detection
+                unsafe { (*bounds_ptr).continue_btn = Some((btn_x, btn_y, bw, bh)); }
+
+                // Hint text
+                text.draw_centered(
+                    renderer,
+                    "Press Enter or Tab to continue",
+                    0.0,
+                    440.0,
+                    w,
+                    theme::FONT_SIZE_SMALL,
+                    theme::TEXT_MUTED,
+                );
             }
 
             Step::Interests => {
@@ -139,11 +192,15 @@ impl Scene for SetupWizard {
                 let mut chip_y = 320.0;
                 let gap = 12.0;
 
+                let mut chip_bounds = Vec::new();
+
                 for (i, &label) in INTEREST_OPTIONS.iter().enumerate() {
                     let is_selected = self.selected_interests[i];
                     let is_cursor = i == self.interest_cursor;
 
                     let (cw, ch) = button::draw_chip(renderer, text, label, chip_x, chip_y, is_selected);
+
+                    chip_bounds.push((chip_x, chip_y, cw, ch));
 
                     // Cursor indicator
                     if is_cursor {
@@ -157,12 +214,17 @@ impl Scene for SetupWizard {
                     }
                 }
 
+                unsafe { (*bounds_ptr).chips = chip_bounds; }
+
                 // Continue button
                 let any_selected = self.selected_interests.iter().any(|&s| s);
                 let btn_y = chip_y + 60.0;
                 let btn_label = "Continue";
                 let btn_w = text.measure(btn_label, theme::FONT_SIZE_BODY) + 24.0;
-                button::draw_button(renderer, text, btn_label, cx - btn_w / 2.0, btn_y, any_selected);
+                let btn_x = cx - btn_w / 2.0;
+                let (bw, bh) = button::draw_button(renderer, text, btn_label, btn_x, btn_y, any_selected);
+
+                unsafe { (*bounds_ptr).continue_btn = Some((btn_x, btn_y, bw, bh)); }
 
                 text.draw_centered(
                     renderer,
@@ -213,7 +275,7 @@ impl Scene for SetupWizard {
         }
     }
 
-    fn handle_input(&mut self, event: InputEvent) -> Transition {
+    fn handle_input(&mut self, event: InputEvent, _audio: &AudioPlayer) -> Transition {
         match self.step {
             Step::Name => match event {
                 InputEvent::Char(ch) => {
@@ -256,6 +318,17 @@ impl Scene for SetupWizard {
                             .unwrap_or(self.name.len());
                     }
                 }
+                InputEvent::Mouse { x, y, button: 1 } => {
+                    // Check Continue button click
+                    if let Some((bx, by, bw, bh)) = self.bounds.continue_btn {
+                        if x as f32 >= bx && x as f32 <= bx + bw
+                            && y as f32 >= by && y as f32 <= by + bh
+                            && !self.name.is_empty()
+                        {
+                            self.step = Step::Interests;
+                        }
+                    }
+                }
                 _ => {}
             },
             Step::Interests => match event {
@@ -290,6 +363,27 @@ impl Scene for SetupWizard {
                 }
                 InputEvent::Escape => {
                     self.step = Step::Name;
+                }
+                InputEvent::Mouse { x, y, button: 1 } => {
+                    // Check chip clicks
+                    for (i, &(cx, cy, cw, ch)) in self.bounds.chips.iter().enumerate() {
+                        if x as f32 >= cx && x as f32 <= cx + cw
+                            && y as f32 >= cy && y as f32 <= cy + ch
+                        {
+                            self.selected_interests[i] = !self.selected_interests[i];
+                            self.interest_cursor = i;
+                            return Transition::None;
+                        }
+                    }
+                    // Check Continue button click
+                    if let Some((bx, by, bw, bh)) = self.bounds.continue_btn {
+                        if x as f32 >= bx && x as f32 <= bx + bw
+                            && y as f32 >= by && y as f32 <= by + bh
+                            && self.selected_interests.iter().any(|&s| s)
+                        {
+                            self.step = Step::Finishing;
+                        }
+                    }
                 }
                 _ => {}
             },

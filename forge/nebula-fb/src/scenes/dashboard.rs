@@ -1,6 +1,7 @@
 /// Dashboard — generative card layout from brain server.
 /// Status bar (top), greeting + cards (middle), omnibar (bottom).
 
+use crate::audio::AudioPlayer;
 use crate::brain_client;
 use crate::input::InputEvent;
 use crate::layout;
@@ -164,7 +165,7 @@ impl Dashboard {
 use chrono::Timelike;
 
 impl Scene for Dashboard {
-    fn update(&mut self, dt: f32) -> Transition {
+    fn update(&mut self, dt: f32, _audio: &AudioPlayer) -> Transition {
         self.elapsed += dt;
 
         // Refresh telemetry periodically
@@ -297,7 +298,7 @@ impl Scene for Dashboard {
         text_input::draw_omnibar(renderer, text, &self.omnibar, w, h);
     }
 
-    fn handle_input(&mut self, event: InputEvent) -> Transition {
+    fn handle_input(&mut self, event: InputEvent, _audio: &AudioPlayer) -> Transition {
         match event {
             InputEvent::Char(ch) => {
                 self.omnibar.insert_char(ch);
@@ -330,6 +331,13 @@ impl Scene for Dashboard {
             }
             InputEvent::Escape => {
                 self.response_text = None;
+            }
+            InputEvent::Mouse { x: _, y, button: 1 } => {
+                // Click on omnibar area to focus
+                let omnibar_y = self.screen_height as f32 - theme::OMNIBAR_HEIGHT as f32;
+                if y as f32 >= omnibar_y {
+                    self.omnibar.focused = true;
+                }
             }
             _ => {}
         }

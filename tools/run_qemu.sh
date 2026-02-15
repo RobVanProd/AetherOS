@@ -111,7 +111,10 @@ if $GRAPHICAL; then
         -initrd "$INITRD" \
         -append "video=1920x1080 console=tty0 console=ttyS0 quiet loglevel=3" \
         -vga std \
-        -display gtk \
+        -display sdl \
+        -usb -device usb-tablet \
+        -audiodev sdl,id=snd0 \
+        -device intel-hda -device hda-duplex,audiodev=snd0 \
         -serial stdio \
         -no-reboot \
         -netdev user,id=net0,hostfwd=tcp::2222-:22 \
