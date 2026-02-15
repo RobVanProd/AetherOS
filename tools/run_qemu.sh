@@ -112,7 +112,7 @@ if $GRAPHICAL; then
         -append "video=1920x1080 console=tty0 console=ttyS0 quiet loglevel=3" \
         -vga std \
         -display sdl \
-        -usb -device usb-tablet \
+        -device qemu-xhci,id=xhci -device usb-tablet,bus=xhci.0 \
         -audiodev sdl,id=snd0 \
         -device intel-hda -device hda-duplex,audiodev=snd0 \
         -serial stdio \

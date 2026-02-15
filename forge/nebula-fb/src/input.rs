@@ -49,6 +49,7 @@ pub struct InputReader {
     pub mouse_buttons: u8,
     screen_width: u32,
     screen_height: u32,
+    evdev_retry_counter: u32,
 }
 
 impl InputReader {
@@ -89,8 +90,9 @@ impl InputReader {
 
         // Scan for evdev mouse devices
         let evdev_fds = Self::open_evdev_devices();
-        if !evdev_fds.is_empty() {
-            eprintln!("[input] Opened {} evdev device(s) for mouse", evdev_fds.len());
+        eprintln!("[input] Opened {} evdev device(s) for mouse", evdev_fds.len());
+        if evdev_fds.is_empty() {
+            eprintln!("[input] No evdev devices found yet — will retry periodically");
         }
 
         Ok(Self {
@@ -102,24 +104,34 @@ impl InputReader {
             mouse_buttons: 0,
             screen_width,
             screen_height,
+            evdev_retry_counter: 0,
         })
     }
 
     fn open_evdev_devices() -> Vec<std::fs::File> {
         let mut fds = Vec::new();
+        // Check if /dev/input/ exists
+        if !std::path::Path::new("/dev/input").exists() {
+            eprintln!("[input] /dev/input/ does not exist");
+            return fds;
+        }
         for i in 0..16 {
             let path = format!("/dev/input/event{}", i);
-            if let Ok(file) = std::fs::OpenOptions::new()
+            match std::fs::OpenOptions::new()
                 .read(true)
                 .open(&path)
             {
-                // Set non-blocking
-                let fd = file.as_raw_fd();
-                unsafe {
-                    let flags = libc::fcntl(fd, libc::F_GETFL);
-                    libc::fcntl(fd, libc::F_SETFL, flags | libc::O_NONBLOCK);
+                Ok(file) => {
+                    // Set non-blocking
+                    let fd = file.as_raw_fd();
+                    unsafe {
+                        let flags = libc::fcntl(fd, libc::F_GETFL);
+                        libc::fcntl(fd, libc::F_SETFL, flags | libc::O_NONBLOCK);
+                    }
+                    eprintln!("[input] Opened {}", path);
+                    fds.push(file);
                 }
-                fds.push(file);
+                Err(_) => {}
             }
         }
         fds
@@ -127,6 +139,18 @@ impl InputReader {
 
     /// Non-blocking read of one input event.
     pub fn poll(&mut self) -> InputEvent {
+        // Lazy retry: if no evdev devices, try to open them every ~60 frames (~2s at 30fps)
+        if self.evdev_fds.is_empty() {
+            self.evdev_retry_counter += 1;
+            if self.evdev_retry_counter >= 60 {
+                self.evdev_retry_counter = 0;
+                self.evdev_fds = Self::open_evdev_devices();
+                if !self.evdev_fds.is_empty() {
+                    eprintln!("[input] Late-opened {} evdev device(s)", self.evdev_fds.len());
+                }
+            }
+        }
+
         // Check evdev mouse first
         if let Some(ev) = self.poll_evdev() {
             return ev;

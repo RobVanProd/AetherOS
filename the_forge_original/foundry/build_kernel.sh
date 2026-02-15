@@ -118,17 +118,21 @@ CONFIG_MOUSE_PS2=y
 CONFIG_HID=y
 CONFIG_HID_GENERIC=y
 
-# USB (for HID devices)
+# USB (for HID devices — UHCI for QEMU -usb, EHCI/XHCI for explicit)
 CONFIG_USB=y
 CONFIG_USB_SUPPORT=y
 CONFIG_USB_HID=y
-CONFIG_USB_XHCI_HCD=y
+CONFIG_USB_UHCI_HCD=y
+CONFIG_USB_OHCI_HCD=y
 CONFIG_USB_EHCI_HCD=y
+CONFIG_USB_XHCI_HCD=y
 
-# Sound (Intel HDA for QEMU)
+# Sound (Intel HDA for QEMU + OSS compat for simple playback)
 CONFIG_SOUND=y
 CONFIG_SND=y
 CONFIG_SND_PCM=y
+CONFIG_SND_PCM_OSS=y
+CONFIG_SND_MIXER_OSS=y
 CONFIG_SND_HDA=y
 CONFIG_SND_HDA_INTEL=y
 CONFIG_SND_HDA_CODEC_HDMI=y
@@ -147,15 +151,32 @@ make O="$BUILD_DIR" olddefconfig
 echo "Compiling kernel (this takes a few minutes)..."
 make O="$BUILD_DIR" -j$(nproc) bzImage
 
-echo "Building initramfs..."
-/forge/foundry/build_initramfs.sh "$BUILD_DIR"
+# Copy kernel to images directory
+KERNEL="$BUILD_DIR/arch/x86/boot/bzImage"
+if [ -f "$KERNEL" ]; then
+    cp "$KERNEL" "$IMAGES_DIR/vmlinuz"
+    echo "Kernel copied to $IMAGES_DIR/vmlinuz ($(du -h "$KERNEL" | cut -f1))"
+else
+    echo "ERROR: bzImage not found at $KERNEL"
+    exit 1
+fi
+
+# Update build info
+cat > "$IMAGES_DIR/build_info.json" << EOF
+{
+    "aether_version": "1.0.0",
+    "build_time": "$(date -Iseconds)",
+    "kernel_version": "$(make O="$BUILD_DIR" -s kernelversion)",
+    "kernel_path": "vmlinuz",
+    "architecture": "x86_64",
+    "build_type": "release",
+    "status": "ready"
+}
+EOF
 
 echo ""
 echo "Build complete!"
 echo "  Kernel: $IMAGES_DIR/vmlinuz"
-echo "  Initrd: $IMAGES_DIR/initramfs.cpio.gz"
-echo "  Kernel: $IMAGES_DIR/vmlinuz"
-echo "  Initrd: $IMAGES_DIR/initramfs.cpio.gz"
 echo ""
 echo "To boot manually:"
 echo "  qemu-system-x86_64 -kernel $IMAGES_DIR/vmlinuz -initrd $IMAGES_DIR/initramfs.cpio.gz -nographic -append 'console=ttyS0'"

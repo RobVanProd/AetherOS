@@ -119,9 +119,14 @@ impl Scene for BootSplash {
         }
     }
 
-    fn handle_input(&mut self, _event: InputEvent, _audio: &AudioPlayer) -> Transition {
-        // Skip splash on any key or click
-        self.elapsed = SPLASH_DURATION;
+    fn handle_input(&mut self, event: InputEvent, _audio: &AudioPlayer) -> Transition {
+        // Skip splash on keyboard or mouse click — but NOT on mouse move
+        match event {
+            InputEvent::MouseMove { .. } => {}
+            _ => {
+                self.elapsed = SPLASH_DURATION;
+            }
+        }
         Transition::None
     }
 }

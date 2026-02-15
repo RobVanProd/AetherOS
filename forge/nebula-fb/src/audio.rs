@@ -1,7 +1,7 @@
-/// Audio system — WAV playback via raw ALSA ioctls on /dev/snd/pcmC0D0p.
+/// Audio system — WAV playback via OSS /dev/dsp (primary) or ALSA /dev/snd/pcmC0D0p (fallback).
 ///
 /// Provides:
-/// - `AudioPlayer::new()` — opens the ALSA device (or logs warning)
+/// - `AudioPlayer::new()` — detects available audio device
 /// - `play_boot_chime()` — plays embedded BOOT.wav one-shot
 /// - `play_post_music()` — loops /usr/share/sounds/post.wav, returns PlayHandle
 /// - `PlayHandle::fade_out(ms)` / `PlayHandle::stop()`
@@ -24,12 +24,10 @@ fn parse_wav_header(data: &[u8]) -> Option<WavInfo> {
     if data.len() < 44 {
         return None;
     }
-    // "RIFF" check
     if &data[0..4] != b"RIFF" || &data[8..12] != b"WAVE" {
         return None;
     }
 
-    // Find "fmt " chunk
     let mut pos = 12;
     let mut fmt_channels = 0u16;
     let mut fmt_rate = 0u32;
@@ -52,7 +50,6 @@ fn parse_wav_header(data: &[u8]) -> Option<WavInfo> {
         }
 
         pos += 8 + chunk_size;
-        // Word-align
         if pos % 2 != 0 {
             pos += 1;
         }
@@ -74,56 +71,65 @@ fn parse_wav_header(data: &[u8]) -> Option<WavInfo> {
 /// Handle to a playing audio stream — supports fade-out and stop.
 pub struct PlayHandle {
     stop_flag: Arc<AtomicBool>,
-    /// Volume in 0..1000 (permille). 1000 = full volume.
     volume: Arc<AtomicU32>,
     fade_flag: Arc<AtomicBool>,
     fade_duration_ms: Arc<AtomicU32>,
 }
 
 impl PlayHandle {
-    /// Start a fade-out over the given duration in milliseconds.
     pub fn fade_out(&self, duration_ms: u32) {
         self.fade_duration_ms.store(duration_ms, Ordering::Relaxed);
         self.fade_flag.store(true, Ordering::Relaxed);
     }
 
-    /// Immediately stop playback.
     pub fn stop(&self) {
         self.stop_flag.store(true, Ordering::Relaxed);
     }
 }
 
+/// Which audio backend is available.
+#[derive(Clone, Copy, PartialEq)]
+enum AudioBackend {
+    Oss,   // /dev/dsp
+    Alsa,  // /dev/snd/pcmC0D0p
+    None,
+}
+
 pub struct AudioPlayer {
-    available: bool,
+    backend: AudioBackend,
 }
 
 impl AudioPlayer {
     pub fn new() -> Self {
-        // Check if ALSA device exists
-        let available = std::path::Path::new("/dev/snd/pcmC0D0p").exists();
-        if available {
-            eprintln!("[audio] ALSA PCM device found");
+        // Try OSS first (simpler ioctls, more reliable)
+        let backend = if std::path::Path::new("/dev/dsp").exists() {
+            eprintln!("[audio] OSS device /dev/dsp found");
+            AudioBackend::Oss
+        } else if std::path::Path::new("/dev/snd/pcmC0D0p").exists() {
+            eprintln!("[audio] ALSA device /dev/snd/pcmC0D0p found");
+            AudioBackend::Alsa
         } else {
-            eprintln!("[audio] No ALSA device found — audio disabled");
-        }
-        Self { available }
+            eprintln!("[audio] No audio device found — audio disabled");
+            eprintln!("[audio] (Kernel needs CONFIG_SOUND=y CONFIG_SND_PCM_OSS=y and kernel rebuild)");
+            AudioBackend::None
+        };
+        Self { backend }
     }
 
-    /// Play the embedded boot chime (one-shot, fire-and-forget).
     pub fn play_boot_chime(&self) {
-        if !self.available {
+        let backend = self.backend;
+        if backend == AudioBackend::None {
             return;
         }
         std::thread::spawn(move || {
-            if let Err(e) = play_wav_data(BOOT_WAV, false, None) {
+            if let Err(e) = play_wav_data(BOOT_WAV, backend, None) {
                 eprintln!("[audio] Boot chime error: {}", e);
             }
         });
     }
 
-    /// Play POST music from filesystem in a loop. Returns a PlayHandle for fade/stop.
     pub fn play_post_music(&self) -> Option<PlayHandle> {
-        if !self.available {
+        if self.backend == AudioBackend::None {
             return None;
         }
 
@@ -139,8 +145,8 @@ impl AudioPlayer {
             fade_duration_ms: fade_duration_ms.clone(),
         };
 
+        let backend = self.backend;
         std::thread::spawn(move || {
-            // Read post.wav from filesystem
             let data = match std::fs::read("/usr/share/sounds/post.wav") {
                 Ok(d) => d,
                 Err(e) => {
@@ -156,12 +162,11 @@ impl AudioPlayer {
                 fade_duration_ms,
             });
 
-            // Loop until stopped
             loop {
                 if ctrl.as_ref().map_or(false, |c| c.stop_flag.load(Ordering::Relaxed)) {
                     break;
                 }
-                match play_wav_data(&data, true, ctrl.as_ref()) {
+                match play_wav_data(&data, backend, ctrl.as_ref()) {
                     Ok(stopped) => {
                         if stopped {
                             break;
@@ -186,42 +191,36 @@ struct PlayControl {
     fade_duration_ms: Arc<AtomicU32>,
 }
 
-/// Low-level WAV playback to /dev/snd/pcmC0D0p using write().
-/// Returns Ok(true) if stopped early, Ok(false) if played to completion.
-fn play_wav_data(data: &[u8], _looping: bool, ctrl: Option<&PlayControl>) -> Result<bool, String> {
+/// Play WAV data to the audio device. Returns Ok(true) if stopped early.
+fn play_wav_data(data: &[u8], backend: AudioBackend, ctrl: Option<&PlayControl>) -> Result<bool, String> {
     let info = parse_wav_header(data).ok_or("Invalid WAV header")?;
 
     eprintln!(
-        "[audio] Playing: {}ch {}Hz {}bit, {} bytes of PCM data",
+        "[audio] Playing: {}ch {}Hz {}bit, {} bytes PCM",
         info.channels, info.sample_rate, info.bits_per_sample, info.data_len
     );
 
-    // Open ALSA device
-    let mut file = std::fs::OpenOptions::new()
-        .write(true)
-        .open("/dev/snd/pcmC0D0p")
-        .map_err(|e| format!("open pcm: {}", e))?;
+    let mut file = match backend {
+        AudioBackend::Oss => open_and_configure_oss(&info)?,
+        AudioBackend::Alsa => open_and_configure_alsa(&info)?,
+        AudioBackend::None => return Err("No audio backend".to_string()),
+    };
 
-    // Configure ALSA via ioctl — use hw_params
-    configure_alsa(&file, info.sample_rate, info.channels, info.bits_per_sample)?;
-
-    // Write PCM data in chunks
+    // Write PCM data in chunks (~100ms each)
     let pcm_data = &data[info.data_offset..];
     let actual_len = pcm_data.len().min(info.data_len);
-    let chunk_size = (info.sample_rate as usize * info.channels as usize * (info.bits_per_sample as usize / 8)) / 10; // ~100ms chunks
-    let chunk_size = chunk_size.max(4096);
+    let bytes_per_frame = info.channels as usize * (info.bits_per_sample as usize / 8);
+    let chunk_size = ((info.sample_rate as usize * bytes_per_frame) / 10).max(4096);
 
     let mut offset = 0;
     let mut fade_start: Option<std::time::Instant> = None;
 
     while offset < actual_len {
-        // Check stop
         if let Some(c) = ctrl {
             if c.stop_flag.load(Ordering::Relaxed) {
                 return Ok(true);
             }
 
-            // Handle fade
             if c.fade_flag.load(Ordering::Relaxed) {
                 if fade_start.is_none() {
                     fade_start = Some(std::time::Instant::now());
@@ -239,10 +238,8 @@ fn play_wav_data(data: &[u8], _looping: bool, ctrl: Option<&PlayControl>) -> Res
         let end = (offset + chunk_size).min(actual_len);
         let chunk = &pcm_data[offset..end];
 
-        // Apply volume scaling if fading
         let vol = ctrl.map_or(1000, |c| c.volume.load(Ordering::Relaxed));
         if vol < 1000 && info.bits_per_sample == 16 {
-            // Scale 16-bit samples in-place via a temporary buffer
             let mut scaled = chunk.to_vec();
             for pair in scaled.chunks_exact_mut(2) {
                 let sample = i16::from_le_bytes([pair[0], pair[1]]);
@@ -251,9 +248,9 @@ fn play_wav_data(data: &[u8], _looping: bool, ctrl: Option<&PlayControl>) -> Res
                 pair[0] = bytes[0];
                 pair[1] = bytes[1];
             }
-            write_all_alsa(&mut file, &scaled)?;
+            write_all(&mut file, &scaled)?;
         } else {
-            write_all_alsa(&mut file, chunk)?;
+            write_all(&mut file, chunk)?;
         }
 
         offset = end;
@@ -262,38 +259,89 @@ fn play_wav_data(data: &[u8], _looping: bool, ctrl: Option<&PlayControl>) -> Res
     Ok(false)
 }
 
-fn write_all_alsa(file: &mut std::fs::File, data: &[u8]) -> Result<(), String> {
+fn write_all(file: &mut std::fs::File, data: &[u8]) -> Result<(), String> {
     use std::io::Write;
-    file.write_all(data).map_err(|e| format!("pcm write: {}", e))
+    file.write_all(data).map_err(|e| format!("audio write: {}", e))
 }
 
-/// Configure ALSA hardware parameters via ioctl.
-/// This uses the SNDRV_PCM_IOCTL_HW_PARAMS ioctl to set format, rate, channels.
-fn configure_alsa(file: &std::fs::File, sample_rate: u32, channels: u16, bits: u16) -> Result<(), String> {
+// ---- OSS backend (/dev/dsp) ----
+
+/// OSS ioctl constants.
+/// _SIOWR('P', n, int) = (3 << 30) | (4 << 16) | (0x50 << 8) | n
+const SNDCTL_DSP_SPEED: libc::c_int = ioctl_code(2); // set sample rate
+const SNDCTL_DSP_SETFMT: libc::c_int = ioctl_code(5); // set format
+const SNDCTL_DSP_CHANNELS: libc::c_int = ioctl_code(6); // set channels
+const AFMT_S16_LE: i32 = 0x10;
+
+const fn ioctl_code(nr: u32) -> libc::c_int {
+    // _SIOWR('P', nr, int) = direction(3) << 30 | size(4) << 16 | type('P'=0x50) << 8 | nr
+    ((3u32 << 30) | (4u32 << 16) | (0x50u32 << 8) | nr) as i32
+}
+
+fn open_and_configure_oss(info: &WavInfo) -> Result<std::fs::File, String> {
     use std::os::unix::io::AsRawFd;
+
+    let file = std::fs::OpenOptions::new()
+        .write(true)
+        .open("/dev/dsp")
+        .map_err(|e| format!("open /dev/dsp: {}", e))?;
 
     let fd = file.as_raw_fd();
 
-    // ALSA ioctl numbers (cast to Ioctl = c_int on musl)
+    // Set format (S16_LE)
+    let mut fmt = AFMT_S16_LE;
+    let ret = unsafe { libc::ioctl(fd, SNDCTL_DSP_SETFMT, &mut fmt) };
+    if ret < 0 {
+        eprintln!("[audio] OSS SETFMT failed: {}", std::io::Error::last_os_error());
+    }
+
+    // Set channels
+    let mut channels = info.channels as i32;
+    let ret = unsafe { libc::ioctl(fd, SNDCTL_DSP_CHANNELS, &mut channels) };
+    if ret < 0 {
+        eprintln!("[audio] OSS CHANNELS failed: {}", std::io::Error::last_os_error());
+    }
+
+    // Set sample rate
+    let mut rate = info.sample_rate as i32;
+    let ret = unsafe { libc::ioctl(fd, SNDCTL_DSP_SPEED, &mut rate) };
+    if ret < 0 {
+        eprintln!("[audio] OSS SPEED failed: {}", std::io::Error::last_os_error());
+    }
+
+    eprintln!("[audio] OSS configured: {}Hz {}ch", rate, channels);
+    Ok(file)
+}
+
+// ---- ALSA backend (/dev/snd/pcmC0D0p) ----
+
+fn open_and_configure_alsa(info: &WavInfo) -> Result<std::fs::File, String> {
+    use std::os::unix::io::AsRawFd;
+
+    let file = std::fs::OpenOptions::new()
+        .write(true)
+        .open("/dev/snd/pcmC0D0p")
+        .map_err(|e| format!("open pcm: {}", e))?;
+
+    let fd = file.as_raw_fd();
+
+    // ALSA ioctl numbers
     const SNDRV_PCM_IOCTL_HW_PARAMS: libc::c_int = 0xc2604111u32 as i32;
     const SNDRV_PCM_IOCTL_PREPARE: libc::c_int = 0x00004140;
 
-    // Format: S16_LE = 2, S24_LE = 6, S32_LE = 10
-    let format = match bits {
-        16 => 2u32,
-        24 => 6u32,
-        32 => 10u32,
-        _ => 2u32,
+    let format: u32 = match info.bits_per_sample {
+        16 => 2, // S16_LE
+        24 => 6, // S24_LE
+        32 => 10, // S32_LE
+        _ => 2,
     };
 
-    // snd_pcm_hw_params structure — 608 bytes on 64-bit Linux
-    // We use a simplified approach: fill the masks and intervals
     #[repr(C)]
     struct SndPcmHwParams {
         flags: u32,
-        masks: [[u32; 8]; 3],      // 3 masks: access, format, subformat (256 bits each)
+        masks: [[u32; 8]; 3],
         _reserved_masks: [[u32; 8]; 2],
-        intervals: [SndInterval; 12], // 12 intervals
+        intervals: [SndInterval; 12],
         rmask: u32,
         cmask: u32,
         info: u32,
@@ -309,92 +357,59 @@ fn configure_alsa(file: &std::fs::File, sample_rate: u32, channels: u16, bits: u
     struct SndInterval {
         min: u32,
         max: u32,
-        openmin_openmax_integer_empty: u32,
+        flags: u32,
     }
 
     let mut params: SndPcmHwParams = unsafe { std::mem::zeroed() };
 
-    // Set all masks to "any" (all bits set)
+    // Masks: set all bits, then refine
     for mask in &mut params.masks {
-        for word in mask.iter_mut() {
-            *word = 0xFFFFFFFF;
-        }
+        for word in mask.iter_mut() { *word = 0xFFFFFFFF; }
     }
     for mask in &mut params._reserved_masks {
-        for word in mask.iter_mut() {
-            *word = 0xFFFFFFFF;
-        }
+        for word in mask.iter_mut() { *word = 0xFFFFFFFF; }
     }
-
-    // Set all intervals to full range initially
     for interval in &mut params.intervals {
         interval.min = 0;
         interval.max = u32::MAX;
-        interval.openmin_openmax_integer_empty = 0;
+        interval.flags = 0;
     }
 
-    // Refine mask: access = MMAP_INTERLEAVED (0) | RW_INTERLEAVED (3)
-    // Mask index 0 = access
+    // Access: RW_INTERLEAVED (bit 3)
     params.masks[0] = [0; 8];
-    params.masks[0][0] = (1 << 0) | (1 << 3); // MMAP_INTERLEAVED | RW_INTERLEAVED
+    params.masks[0][0] = (1 << 0) | (1 << 3);
 
-    // Refine mask: format — set only our format bit
-    // Mask index 1 = format
+    // Format
     params.masks[1] = [0; 8];
     params.masks[1][(format / 32) as usize] = 1 << (format % 32);
 
-    // Refine mask: subformat — standard (bit 0)
+    // Subformat: standard
     params.masks[2] = [0; 8];
     params.masks[2][0] = 1;
 
-    // Interval indices:
-    // 0 = sample_bits, 1 = frame_bits, 2 = channels, 3 = rate
-    // 4 = period_time, 5 = period_size, 6 = period_bytes
-    // 7 = periods, 8 = buffer_time, 9 = buffer_size, 10 = buffer_bytes
-    // 11 = tick_time
-
-    // Sample bits
-    let sample_bits = bits as u32;
-    params.intervals[0] = SndInterval { min: sample_bits, max: sample_bits, openmin_openmax_integer_empty: 0 };
-
-    // Frame bits
-    let frame_bits = sample_bits * channels as u32;
-    params.intervals[1] = SndInterval { min: frame_bits, max: frame_bits, openmin_openmax_integer_empty: 0 };
-
-    // Channels
-    params.intervals[2] = SndInterval { min: channels as u32, max: channels as u32, openmin_openmax_integer_empty: 0 };
-
-    // Sample rate
-    params.intervals[3] = SndInterval { min: sample_rate, max: sample_rate, openmin_openmax_integer_empty: 0 };
-
-    // Let ALSA figure out period/buffer sizes
-    // Period size: suggest ~1024 frames
-    params.intervals[5] = SndInterval { min: 256, max: 16384, openmin_openmax_integer_empty: 0 };
-
-    // Periods: 2-8
-    params.intervals[7] = SndInterval { min: 2, max: 8, openmin_openmax_integer_empty: 0 };
-
-    // rmask = all bits (refine everything)
+    let sample_bits = info.bits_per_sample as u32;
+    let frame_bits = sample_bits * info.channels as u32;
+    params.intervals[0] = SndInterval { min: sample_bits, max: sample_bits, flags: 0 };
+    params.intervals[1] = SndInterval { min: frame_bits, max: frame_bits, flags: 0 };
+    params.intervals[2] = SndInterval { min: info.channels as u32, max: info.channels as u32, flags: 0 };
+    params.intervals[3] = SndInterval { min: info.sample_rate, max: info.sample_rate, flags: 0 };
+    params.intervals[5] = SndInterval { min: 256, max: 16384, flags: 0 };
+    params.intervals[7] = SndInterval { min: 2, max: 8, flags: 0 };
     params.rmask = 0xFFFFFFFF;
 
     let ret = unsafe {
         libc::ioctl(fd, SNDRV_PCM_IOCTL_HW_PARAMS, &mut params as *mut SndPcmHwParams)
     };
-
     if ret < 0 {
-        let errno = std::io::Error::last_os_error();
-        eprintln!("[audio] HW_PARAMS ioctl failed: {} (ret={})", errno, ret);
-        // Fall back to just writing raw PCM data — some devices accept it
-        eprintln!("[audio] Attempting raw write without explicit hw_params...");
+        eprintln!("[audio] ALSA HW_PARAMS failed: {}", std::io::Error::last_os_error());
     } else {
-        eprintln!("[audio] ALSA configured: {}Hz {}ch {}bit", sample_rate, channels, bits);
+        eprintln!("[audio] ALSA configured: {}Hz {}ch {}bit", info.sample_rate, info.channels, info.bits_per_sample);
     }
 
-    // Prepare the device for playback
     let ret = unsafe { libc::ioctl(fd, SNDRV_PCM_IOCTL_PREPARE) };
     if ret < 0 {
-        eprintln!("[audio] PREPARE ioctl failed: {}", std::io::Error::last_os_error());
+        eprintln!("[audio] ALSA PREPARE failed: {}", std::io::Error::last_os_error());
     }
 
-    Ok(())
+    Ok(file)
 }
