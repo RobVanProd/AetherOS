@@ -27,7 +27,7 @@ import torch.nn.functional as F
 # Add model source to path if present; fall back to mock mode if it is absent.
 MODEL_SRC = os.environ.get(
     "CFCD_MODEL_SRC",
-    "/home/rob/jepaworlddiffusionlm/internal_world_model",
+    str(Path(__file__).resolve().parent / "internal_world_model"),
 )
 if MODEL_SRC and MODEL_SRC not in sys.path:
     sys.path.insert(0, MODEL_SRC)
@@ -498,7 +498,10 @@ def main():
     parser.add_argument(
         "--checkpoint",
         type=str,
-        default=os.environ.get("CFCD_CHECKPOINT", ""),
+        default=os.environ.get(
+            "CFCD_CHECKPOINT",
+            str(Path(__file__).resolve().parent / "checkpoints_small" / "model_final.pt"),
+        ),
         help="Path to model checkpoint (.pt); optional when mock mode is allowed",
     )
     parser.add_argument("--socket", type=str, default="/tmp/cfcd.sock",

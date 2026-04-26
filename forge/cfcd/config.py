@@ -8,11 +8,16 @@ from pathlib import Path
 @dataclass
 class CFCDConfig:
     # Model loading
-    checkpoint_path: str = field(default_factory=lambda: os.environ.get("CFCD_CHECKPOINT", ""))
+    checkpoint_path: str = field(
+        default_factory=lambda: os.environ.get(
+            "CFCD_CHECKPOINT",
+            str(Path(__file__).resolve().parent / "checkpoints_small" / "model_final.pt"),
+        )
+    )
     model_source_dir: str = field(
         default_factory=lambda: os.environ.get(
             "CFCD_MODEL_SRC",
-            "/home/rob/jepaworlddiffusionlm/internal_world_model",
+            str(Path(__file__).resolve().parent / "internal_world_model"),
         )
     )
     allow_mock_model: bool = field(
@@ -42,7 +47,9 @@ class CFCDConfig:
     warmup_lr: float = 1e-6
 
     # Weight versioning
-    weight_version_dir: str = "/var/lib/aether/aurora/models"
+    weight_version_dir: str = field(
+        default_factory=lambda: str(Path(__file__).resolve().parent / "weight_versions")
+    )
     max_weight_versions: int = 10
     auto_rollback_window: int = 100
 
@@ -59,7 +66,7 @@ class CFCDConfig:
         try:
             p.mkdir(parents=True, exist_ok=True)
             return p
-        except PermissionError:
-            fallback = Path.home() / ".aether" / "aurora" / "models"
+        except OSError:
+            fallback = Path(__file__).resolve().parent / "weight_versions"
             fallback.mkdir(parents=True, exist_ok=True)
             return fallback

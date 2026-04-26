@@ -10,7 +10,7 @@
 
 set -euo pipefail
 
-CHECKPOINT="${1:-${CFCD_CHECKPOINT:-}}"
+CHECKPOINT="${1:-${CFCD_CHECKPOINT:-$CFCD_DIR/checkpoints_small/model_final.pt}}"
 FORGE_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 CFCD_DIR="$(cd "$(dirname "$0")" && pwd)"
 

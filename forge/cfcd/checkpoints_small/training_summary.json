@@ -1,0 +1,31 @@
+{
+  "final_val_loss": 0.9583808302879333,
+  "best_val_loss": 0.9505024433135987,
+  "stopped_epoch": 88,
+  "total_params": 249026,
+  "args": {
+    "state_dim": 512,
+    "hidden_dim": 64,
+    "num_layers": 2,
+    "num_heads": 8,
+    "use_cfc": true,
+    "cfc_compress_ratio": 4,
+    "cfc_kernel_size": 4,
+    "num_timesteps": 1000,
+    "beta_schedule": "cosine",
+    "lr": 0.0001,
+    "weight_decay": 1e-05,
+    "batch_size": 32,
+    "max_epochs": 100,
+    "patience": 15,
+    "grad_clip": 1.0,
+    "train_ratio": 0.7,
+    "val_ratio": 0.15,
+    "seed": 42,
+    "data_path": null,
+    "output_dir": "./checkpoints_small",
+    "resume": null,
+    "log_dir": "./runs_small",
+    "save_every": 10
+  }
+}
