@@ -10,7 +10,7 @@
 
 set -euo pipefail
 
-CHECKPOINT="${1:-/home/rob/jepaworlddiffusionlm/internal_world_model/checkpoints_ssv2_h1_baseline_20260204_212814/model_final.pt}"
+CHECKPOINT="${1:-${CFCD_CHECKPOINT:-}}"
 FORGE_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 CFCD_DIR="$(cd "$(dirname "$0")" && pwd)"
 
@@ -41,7 +41,13 @@ echo ""
 
 # 1. Start cfcd (Python model daemon)
 echo "--- Starting cfcd (CFC-JEPA model runtime) ---"
-python3 "$CFCD_DIR/cfcd_server.py" --checkpoint "$CHECKPOINT" --socket "$CFCD_SOCK" &
+CFCD_ARGS=()
+if [ -n "$CHECKPOINT" ]; then
+    CFCD_ARGS+=(--checkpoint "$CHECKPOINT")
+else
+    echo "  No checkpoint supplied; cfcd will use mock mode."
+fi
+python3 "$CFCD_DIR/cfcd_server.py" "${CFCD_ARGS[@]}" --socket "$CFCD_SOCK" &
 PIDS+=($!)
 sleep 5  # Model loading takes a few seconds
 

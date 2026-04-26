@@ -17,20 +17,71 @@ import socket
 import sys
 import time
 import traceback
+from dataclasses import dataclass
 from pathlib import Path
 
 import torch
+import torch.nn as nn
+import torch.nn.functional as F
 
-# Add model source to path
-MODEL_SRC = "/home/rob/jepaworlddiffusionlm/internal_world_model"
-sys.path.insert(0, MODEL_SRC)
+# Add model source to path if present; fall back to mock mode if it is absent.
+MODEL_SRC = os.environ.get(
+    "CFCD_MODEL_SRC",
+    "/home/rob/jepaworlddiffusionlm/internal_world_model",
+)
+if MODEL_SRC and MODEL_SRC not in sys.path:
+    sys.path.insert(0, MODEL_SRC)
 
-from models.cfc_jepa_world_model import CFCJEPAWorldModel, CFCJEPAConfig
+try:
+    from models.cfc_jepa_world_model import CFCJEPAWorldModel, CFCJEPAConfig
+    HAS_CFC_MODEL = True
+except Exception as exc:  # pragma: no cover - exercised on systems without model assets
+    CFCJEPAWorldModel = None
+    CFCJEPAConfig = None
+    HAS_CFC_MODEL = False
+    MODEL_IMPORT_ERROR = exc
 
 from config import CFCDConfig
 from os_state_encoder import OSStateEncoder, OSStateVector
 from weight_manager import WeightManager
 from online_learner import OnlineLearner, OSEncoderBootstrap
+
+
+@dataclass
+class MockCFCJEPAConfig:
+    encoder_dim: int = 1024
+    hidden_dim: int = 512
+    embed_dim: int = 1024
+    num_layers: int = 0
+    num_heads: int = 0
+    diffusion_steps: int = 0
+    use_cfc: bool = False
+
+
+class MockCFCJEPAWorldModel(nn.Module):
+    """Minimal fallback when the real CFC-JEPA model assets are unavailable."""
+
+    def __init__(self, config: MockCFCJEPAConfig):
+        super().__init__()
+        self.config = config
+        self.dummy = nn.Parameter(torch.zeros(1))
+        self.predictor = nn.Linear(1, 1, bias=False)
+        self.proj_predictor = nn.Linear(1, 1, bias=False)
+        self.proj_target = nn.Linear(1, 1, bias=False)
+
+    def predict_future(self, current_emb: torch.Tensor, num_samples: int = 1) -> torch.Tensor:
+        return current_emb.clone()
+
+    def compute_total_loss(self, current_batch: torch.Tensor, future_batch: torch.Tensor) -> dict:
+        total_loss = F.mse_loss(current_batch, future_batch)
+        return {
+            "total_loss": total_loss,
+            "diffusion_loss": total_loss,
+            "infonce_loss": torch.zeros((), device=total_loss.device),
+        }
+
+    def get_gate_stats(self) -> dict:
+        return {}
 
 
 class CFCDaemon:
@@ -49,6 +100,7 @@ class CFCDaemon:
 
         # Load model
         self.model, self.model_config = self._load_model(config.checkpoint_path)
+        self.mock_model = isinstance(self.model, MockCFCJEPAWorldModel)
         self.model.eval()
 
         param_count = sum(p.numel() for p in self.model.parameters())
@@ -90,6 +142,28 @@ class CFCDaemon:
 
     def _load_model(self, checkpoint_path: str):
         """Load CFC-JEPA model from checkpoint."""
+        if not HAS_CFC_MODEL:
+            if self.config.allow_mock_model:
+                print(
+                    f"[cfcd] Model source unavailable, using mock runtime ({MODEL_IMPORT_ERROR})"
+                )
+                return self._load_mock_model("model source unavailable")
+            raise RuntimeError(f"model source unavailable: {MODEL_IMPORT_ERROR}")
+
+        if not checkpoint_path:
+            if self.config.allow_mock_model:
+                print("[cfcd] No checkpoint supplied, using mock runtime")
+                return self._load_mock_model("no checkpoint supplied")
+            raise FileNotFoundError("checkpoint path is required when mock mode is disabled")
+
+        checkpoint_file = Path(checkpoint_path)
+        if not checkpoint_file.exists():
+            if self.config.allow_mock_model:
+                print(f"[cfcd] Checkpoint missing: {checkpoint_path}")
+                print("[cfcd] Falling back to mock runtime so the stack can still boot")
+                return self._load_mock_model("checkpoint missing")
+            raise FileNotFoundError(f"checkpoint not found: {checkpoint_path}")
+
         print(f"Loading checkpoint: {checkpoint_path}")
 
         ckpt = torch.load(checkpoint_path, map_location=self.device, weights_only=False)
@@ -135,6 +209,13 @@ class CFCDaemon:
 
         return model, config
 
+    def _load_mock_model(self, reason: str):
+        """Create a lightweight stand-in when the real model assets are absent."""
+        print(f"[cfcd] Mock runtime enabled: {reason}")
+        config = MockCFCJEPAConfig()
+        model = MockCFCJEPAWorldModel(config).to(self.device)
+        return model, config
+
     # --- HTTP Request Handling ---
 
     def handle_request(self, method: str, path: str, body: str) -> tuple:
@@ -175,6 +256,7 @@ class CFCDaemon:
             "ok": True,
             "service": "cfcd",
             "version": "0.1.0",
+            "mode": "mock" if self.mock_model else "model",
             "device": str(self.device),
             "param_count": sum(p.numel() for p in self.model.parameters()),
             "weight_version": self.weight_manager.get_current_version(),
@@ -284,6 +366,7 @@ class CFCDaemon:
                 "hidden_dim": self.model_config.hidden_dim,
                 "diffusion_steps": self.model_config.diffusion_steps,
                 "use_cfc": self.model_config.use_cfc,
+                "mode": "mock" if self.mock_model else "model",
                 "device": str(self.device),
                 "uptime_seconds": int(time.time() - self.start_time),
             },
@@ -412,8 +495,12 @@ class CFCDaemon:
 
 def main():
     parser = argparse.ArgumentParser(description="cfcd - CFC-JEPA Model Runtime")
-    parser.add_argument("--checkpoint", type=str, required=True,
-                        help="Path to model checkpoint (.pt)")
+    parser.add_argument(
+        "--checkpoint",
+        type=str,
+        default=os.environ.get("CFCD_CHECKPOINT", ""),
+        help="Path to model checkpoint (.pt); optional when mock mode is allowed",
+    )
     parser.add_argument("--socket", type=str, default="/tmp/cfcd.sock",
                         help="Unix socket path")
     parser.add_argument("--device", type=str, default="auto")

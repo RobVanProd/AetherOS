@@ -1,5 +1,6 @@
 """Configuration for the cfcd model runtime daemon."""
 
+import os
 from dataclasses import dataclass, field
 from pathlib import Path
 
@@ -7,8 +8,16 @@ from pathlib import Path
 @dataclass
 class CFCDConfig:
     # Model loading
-    checkpoint_path: str = ""
-    model_source_dir: str = "/home/rob/jepaworlddiffusionlm/internal_world_model"
+    checkpoint_path: str = field(default_factory=lambda: os.environ.get("CFCD_CHECKPOINT", ""))
+    model_source_dir: str = field(
+        default_factory=lambda: os.environ.get(
+            "CFCD_MODEL_SRC",
+            "/home/rob/jepaworlddiffusionlm/internal_world_model",
+        )
+    )
+    allow_mock_model: bool = field(
+        default_factory=lambda: os.environ.get("CFCD_ALLOW_MOCK_MODEL", "1") != "0"
+    )
 
     # Server
     socket_path: str = "/tmp/cfcd.sock"
