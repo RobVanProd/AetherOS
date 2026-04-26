@@ -109,14 +109,14 @@ impl Framebuffer {
 
         // Get variable screen info
         let mut vinfo = FbVarScreenInfo::default();
-        let ret = unsafe { libc::ioctl(fd, FBIOGET_VSCREENINFO, &mut vinfo as *mut _) };
+        let ret = unsafe { libc::ioctl(fd, FBIOGET_VSCREENINFO as _, &mut vinfo as *mut _) };
         if ret < 0 {
             return Err(format!("FBIOGET_VSCREENINFO failed: {}", std::io::Error::last_os_error()));
         }
 
         // Get fixed screen info
         let mut finfo = FbFixScreenInfo::default();
-        let ret = unsafe { libc::ioctl(fd, FBIOGET_FSCREENINFO, &mut finfo as *mut _) };
+        let ret = unsafe { libc::ioctl(fd, FBIOGET_FSCREENINFO as _, &mut finfo as *mut _) };
         if ret < 0 {
             return Err(format!("FBIOGET_FSCREENINFO failed: {}", std::io::Error::last_os_error()));
         }

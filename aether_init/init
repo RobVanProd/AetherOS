@@ -36,6 +36,9 @@ mdev -s 2>/dev/null
 # Ensure sound device nodes exist
 mkdir -p /dev/snd
 mdev -s 2>/dev/null
+# Create OSS compat device nodes (major 14) — devtmpfs may not create these
+[ ! -e /dev/dsp ] && mknod /dev/dsp c 14 3 2>/dev/null
+[ ! -e /dev/mixer ] && mknod /dev/mixer c 14 0 2>/dev/null
 
 # ============================================
 # PHASE 4: Networking

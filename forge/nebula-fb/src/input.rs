@@ -24,7 +24,10 @@ pub enum InputEvent {
 
 // Linux input event constants
 const EV_KEY: u16 = 0x01;
+const EV_REL: u16 = 0x02;
 const EV_ABS: u16 = 0x03;
+const REL_X: u16 = 0x00;
+const REL_Y: u16 = 0x01;
 const ABS_X: u16 = 0x00;
 const ABS_Y: u16 = 0x01;
 const BTN_LEFT: u16 = 0x110;
@@ -215,6 +218,20 @@ impl InputReader {
                 let ev: RawInputEvent = unsafe { std::ptr::read(buf.as_ptr() as *const RawInputEvent) };
 
                 match ev.type_ {
+                    EV_REL => {
+                        match ev.code {
+                            REL_X => {
+                                // PS/2 or relative mouse: delta movement
+                                self.mouse_x = (self.mouse_x + ev.value).clamp(0, self.screen_width as i32 - 1);
+                                got_mouse_move = true;
+                            }
+                            REL_Y => {
+                                self.mouse_y = (self.mouse_y + ev.value).clamp(0, self.screen_height as i32 - 1);
+                                got_mouse_move = true;
+                            }
+                            _ => {}
+                        }
+                    }
                     EV_ABS => {
                         match ev.code {
                             ABS_X => {
