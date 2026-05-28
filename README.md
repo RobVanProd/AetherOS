@@ -1,59 +1,28 @@
 # AetherOS
 
-**Canonical repo** for Aeternums’ GenAI‑native operating system.
+AetherOS has Makefile targets for serial and graphical QEMU boots, five Cargo manifests under `forge/`, a QEMU launch script, and a vendored legacy `MyOS` tree.
 
-This repo consolidates:
-- **MyOS** (legacy kernel + subsystems) → `legacy/MyOS/`
-- **Aether_OS** (design docs + tooling) → `docs/aether_os/`
+## What It Is
 
-## What we’re building
-AetherOS is an OS where **intent is a first‑class interface** (Nebula): you express what you want done, and the OS composes capabilities (“facets”) to do it — with memory, provenance, and safety.
+AetherOS is an operating-system prototype exploring an intent-facing shell and AI-adjacent system services. The repo brings together a Linux/QEMU boot harness, Rust daemon crates, a framebuffer shell, a TUI shell, a Python brain server, initramfs tooling, and earlier OS work under `legacy/MyOS`.
 
-Read the practical definition here:
-- `docs/V0_DEFINITION.md`
+The most interesting thing here is the integration target: an OS-shaped environment where shell, dashboard, job routing, audit, and model-backed command processing are treated as parts of the same system.
 
-v0 planning + Aurora boundary docs:
-- `docs/V0_MILESTONE_CHECKLIST.md`
-- `docs/AURORA_CFC_INTEGRATION_BOUNDARY.md`
+## Current Status
 
-## Current status
-- Canonical repo is live; migration is in progress.
-- See:
-  - `MIGRATION.md` (module-by-module plan)
-  - `docs/aether_os/STATUS.md` (latest development status)
-  - `docs/aether_os/aether_roadmap.md` (phased roadmap)
+The repo includes build targets such as `make build`, `make boot`, `make boot-gui`, `make brain-demo`, and `make brain-demo-gui`. `PROGRESS.md` documents serial and graphical boot paths, a framebuffer UI, audio work, mouse cursor work, and known runtime-verification gaps.
 
-## Quickstart (today)
-Right now the build harness targets legacy/MyOS while we migrate modules.
+No QEMU boot was run for this README. Treat the current state as a research prototype with documented build paths, not a verified operating-system release.
 
-```bash
-# from repo root
-./tools/run_qemu.sh
-```
+## Tech Stack
 
-### Forge smoke test (Rust)
-To run the lightweight Forge CI/smoke check locally (requires the Rust toolchain / `cargo`; see `docs/build_toolchain.md`):
+- Rust daemons and shells
+- Python brain server
+- QEMU boot harness
+- BusyBox/initramfs tooling
+- Linux kernel build scripts
+- `ratatui`, `crossterm`, `tiny-skia`, `fontdue`, and related shell/UI crates
 
-```bash
-# from repo root
-make forge-test
+## Limitations
 
-# (equivalent)
-./tools/forge_smoke.sh
-# or: cd forge && cargo test --locked
-```
-
-Toolchain notes:
-- `docs/build_toolchain.md`
-
-## Repo layout
-- `legacy/` — imported projects with preserved history
-- `docs/` — canonical docs (including Aether_OS imports)
-- `tools/` — build/migration scripts
-
-## Contributing
-- `CONTRIBUTING.md`
-
----
-
-**Principle:** ship small, demoable slices; keep the repo source-only; make the build/test harness boring and reproducible.
+The repo contains status docs with ambitious claims, but this README only claims what is visible from files and commands. Audio is explicitly marked as needing runtime verification in `PROGRESS.md`. Automated boot CI is listed as future work.
