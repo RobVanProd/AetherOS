@@ -256,14 +256,26 @@ cargo bench                   # Performance benchmarks
 
 ## Performance
 
-Aero is designed for performance. Current benchmarks show:
+Verified benchmark artifacts are kept under
+[`claim-verification/`](claim-verification/). The latest local verification run
+was captured on 2026-05-28 at commit
+`f263568e06073317467416c2f954c73927c00f3e` on a machine where ROCm reported a
+Radeon RX 7900 XTX (`gfx1100`, PCI device `1002:744c`) and the integrated AMD
+Radeon Graphics device (`gfx1036`, PCI device `1002:13c0`).
 
-- **Compilation Speed:** ~50,000 lines/second
-- **Function Call Overhead:** <2ns per call
-- **Loop Performance:** Comparable to C/C++
-- **Memory Usage:** Minimal runtime overhead
+Current verified results from that run:
 
-See [benchmarks/](benchmarks/) for detailed performance analysis.
+- Python benchmark harness compilation means ranged from 0.0385s to 0.0474s
+  across the checked benchmark inputs
+  ([raw JSON](benchmarks/results/performance_results_1780006109.json)).
+- Rust Criterion lexer benchmarks measured tokenization cases from 340.38ns to
+  22.956us
+  ([raw log](claim-verification/results/aero_post_reboot_7900xtx_20260528T190000Z/run_performance_benchmarks.stdout.log)).
+
+The verification run did not produce evidence for GPT-2 training throughput,
+GPU matmul speedups, NCCL/MPI scaling, GGUF inference benchmarks, or HIP
+vector-add benchmarks. Those claims are omitted from this README until raw
+artifacts or fresh reruns support them.
 
 ## License
 
@@ -297,7 +309,8 @@ Aero is an actively developed programming language. It is currently in **Phase 3
 - ✅ Complete LLVM code generation for all new features
 - 🚧 Enhanced error reporting with source locations (remaining work)
 
-The language is not yet production-ready but has a solid foundation and is rapidly evolving. We welcome feedback and contributions!
+The language is still under active development and the benchmark claims above
+are limited to the artifacts cited there. We welcome feedback and contributions.
 
 ## Getting Started
 
